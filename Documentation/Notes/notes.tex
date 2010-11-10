@@ -1,0 +1,1704 @@
+\documentclass{article}
+
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\input{commands}
+
+\newcommand{\bo}[1]{\mathbf{#1}}
+
+%\lhead{Left Header}
+%\rhead{Right Header}
+
+\begin{document}
+
+% Change Font and Spacing
+\large % change the font size to 12pt
+\linespread{1.1} % change the line spacing
+
+% Set the counter
+\setcounter{section}{0}
+
+\tableofcontents
+
+\newpage
+
+\section{GARCH(1,1)}
+
+\subsection{The Model}
+
+This section explains the Bayesian approach to a GARCH(1,1) model.  The GARCH class of models were developed to model white noise processes that possess higher order correlations, such as stock returns.  GARCH is able to model heteroskedacity (changing volatility), volatility clustering, and heavy tails amongst other things.  We focus on GARCH(1,1) since it is the most basic model.  All GARCH like models have the same basic form.  The observed process, which will be white noise, takes the form
+\[
+r_t = \sigma_t \ep_t.
+\]
+Since this model is often used in finance, we think of $r_t$ as returns.  The conditional variance $\sigma_t^2 = \Var (r_t | \mcF_{t-1})$ is a predictable process and $\ep_t$ is some multiplicative innovation, which we assume to be independent and identically distributed.  Initially, academics proposed letting $\ep_t$ be normally distributed, but this doesn't produce heavy enough tails to match real data.  Thus other distributions for $\ep_t$ were considered.  We will study the case that $\ep_t$ has a Student's-T distribution as well.
+
+In the GARCH(1,1) model, the conditional variance is deterministic.  Given the previous conditional variance and the previous squared return, the current conditional variance is
+\[
+\sigma_t^2 = \omega + \alpha r_{t-1}^2 + \beta \sigma_{t-1}^2.
+\]
+The conditional variance $\sigma^2_t$ is not observed, but the squared returns are observed.  It is possible to extend this type of GARCH model by including more lagged conditional variances or more lagged squared returns.  Note further that we can rewrite our equation for $\sigma^2_t$ as
+\[
+\sigma^2_t = (1 - \alpha - \beta) \frac{\omega}{1 - \alpha - \beta} + \alpha R^2_{t-1} + \beta \sigma^2_{t-1}
+\]
+to reflect that $\sigma^2_t$ is the average of three quantities.  (Mention how this formula then becomes a weighted average of past squared returns?)
+The complete GARCH(1,1) model is given by
+\[
+\begin{cases}
+r_t = \sigma_t \ep_t \\
+\sigma^2_t = \omega + \alpha R^2_{t-1} + \beta \sigma^2_{t-1}.
+\end{cases}
+\]
+Let us collect our parameters in a single vector $\theta = (\omega, \alpha, \beta)$.  This creates a parametric distribution for $r_t$.  In particular, given $\theta$ and $\sigma_1$ the density of $\{r_i\}_{i=1}^T$ can be decomposed as
+\begin{align*}
+p \Big( \{r_i\}_{i=1}^T | \theta, \sigma_0 \Big)
+& = p \Big( r_T | \{r_i\}_{i=1}^{T-1}, \theta, \sigma_1 \Big) \times
+p \Big( r_{T-1} | \{r_i\}_{i=1}^{T-2}, \theta, \sigma_1 \Big) \times \cdots \\
+& = \prod_{1}^{j=T} p \Big( r_{j} | \{r_i\}_{i=1}^{j-1}, \theta, \sigma_1 \Big).
+\end{align*}
+In fact, we can simplify the above expression further.  In particular, the information in $\{r_i\}_{i=1}^{j-1}$, $\theta$, and $\sigma_1$ relevant to $r_j$ is contained in $\sigma_j^2$, which is a function of $\{r_i\}_{i=1}^{j-1}$, $\theta$, and $\sigma_1^2$.  To be precise,
+\[
+p \Big( r_j | \sigma_{j}^2 \Big) p \Big( \sigma_{j}^2 | \{r_i\}_{i=1}^{j-1}, \theta, \sigma_1 \Big).
+\]
+But $p(\sigma_{j-1}^2 | \cdots)$ is a Dirac point mass according to our GARCH model.  This entire analysis holds regardless of the specific conditional density for $(r_t)$.
+
+As mentioed earlier, we want to consider the case when $\ep_t$ is either normally distributed or Student's-T distributed.  The likelihood $L(\theta | \{r_i\}_{i=1}^{T}, \sigma_1^2) = p(\{r_i\}_{i=1}^{j-1} | \theta, \sigma_1^2)$, when $\ep_t$ is normal with precision $\tau$, is proportional to
+\[
+L(\theta | \{r_i\}_{i=1}^{T}, \sigma_1^2) 
+\propto \prod_{1}^{j=T} \sqrt{\frac{\tau}{\sigma_j^2}} \exp \Big\{ \frac{-\tau}{2} \frac{r_j^2}{\sigma_j^2} \Big\}
+\]
+where $\sigma_j^2$ is recursively defined using our past observations, $\theta$, and $\sigma_0^2$.  In this case the conditional variance of $r_t$ is $\sigma_t^2 / \tau$.  
+When $\ep_t$ is a T-distribution with $\nu$ degress of freedom, the likelihood is
+\[
+L(\theta | \{r_i\}_{i=1}^{T}, \sigma_1^2) 
+\propto \prod_{1}^{j=T} \Big[ (\sigma_j^2)^{-1} \Big( 1 + \frac{1}{\nu} \frac{r_j}{\sigma_j^2} \Big) \Big]^2
+\]
+where $\sigma_j^2$ is recursively defined using our past observations, $\theta$, and $\sigma_0^2$.  In this case the conditional variance of $r_t$ is $\frac{\nu}{\nu-2} \sigma_t^2$.
+
+\subsection{Implementation}
+
+For each likelihood we will generate draws from the posterior distributrion through Gibbs sampling.  Abstractly speaking, suppose you have observations $D$ and parameters $\theta = (\theta_1, \ldots, \theta_n)$.  You can draw from the posterior distribution by generating draws from the following Markov Chain.  The Markov chain transitions from the vector $\theta^{(i-1)}$ to $\theta^{(i)}$.  We denote $\theta_{-i}$ as the vector without the $i$th index, that is $(\theta_1, \ldots, \theta_{i-1}, \theta_{i+1}, \ldots, \theta_n)$.  The state of our Markov chain is updated by Algorithm \ref{generic-gibbs:alg}.  Asymptotically, this Markov Chain has an equilibrium distribution identical to the posterior distribution $p(\theta | D)$.  Furthermore, Algorithm \ref{generic-gibbs:alg} provides an outline of how to compute the posterior distribution; however, when we cannot calculate a conditional density $p(\theta_j | \theta_{-j}, D)$ directly we will need to appeal to further computations.
+
+\begin{comment}
+\begin{description}
+\item[1:] Set $i = 0$ and $\theta^{i}$ to vector..
+\item[2:] Draw $\theta_1$ from $p(\theta_1 | \theta_{-1}, D)$ 
+\item[3:] Draw $\theta_2$ from $p(\theta_2 | \theta_{-2}, D)$
+\item $\cdots$
+\item[$n$+1:] Draw $\theta_n$ from $p(\theta_n | \theta_{-n}, D)$.
+\item[$n$+2:] Set $theta^{(i+1)} = \theta$.
+\item[$n$+3:] Go back to step 
+\end{description}
+\end{comment}
+
+\begin{algorithm}
+\caption{Gibbs Sampling Outline}
+\label{generic-gibbs:alg}
+\begin{algorithmic}
+\STATE $i = 0$;
+\STATE Set $\theta$ to something;
+\REPEAT
+\FOR{$j = 1$ to $n$}
+  \STATE Draw $\theta_j^* \sim p(\theta_j^* | \theta_{-j}, D)$;
+  \STATE $\theta_j = \theta_j^*$;
+\ENDFOR
+\STATE $\theta^{(i)} = \theta$;
+\UNTIL{$i$++ is large enough} 
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Normal Case}
+
+We try to follow the steps outlined in Bayesian methods in finance to sample from the posterior.  We adjust their work slightly to accomodate the normal distribution for $\ep_t$.  First we must chose a prior for $\theta = (\omega, \alpha, \beta)$.  Following Bayesian methods we let $\theta$ follow the improper and diffuse prior $p(\theta) = \1 \{ \theta > 0 \}$.  We chose a conjugate prior for $\tau$ by letting $\tau \sim \textmd{Gamma}(n/2, d/2)$.  To implement our Gibbs algorithm we need to calculate $p(\tau | \{r_i\}_{i=1}^T, \theta, \sigma^2_0)$ and $p(\theta | \{r_i\}_{i=1}^T, \tau, \sigma_0)$.
+
+\begin{description}
+\item[Conditional posterior for $\tau$:]  Each $r_t$ given $\tau$ and $\sigma_t^2$ is distributed as $r_t | \sigma_t^2, \tau \sim \mcN(0, \sigma_t^2 / \tau)$.  The conjugate prior for $\tau$ is the gamma distribution.  In particular, if $\tau \sim \textmd{Gamma}(n/2,d/2)$ then we know that the posterior of $\tau$ given our observations and the parameter $\theta$ is the gamma distribution $\textmd{Gamma}(n^*/2, d^*/2)$ where
+\[
+\begin{cases}
+n^* = n + T \\
+d^* = d + \sum_{t=1}^T r_t^2/\sigma_t^2.
+\end{cases}
+\]
+This derivation can be found in J. Scott's notes.  To remind the reader, we can calculate $\sigma_t^2$ from our knowledge of the returns, the parameter $\theta$, and $\sigma_1^2$.
+
+\item[Conditional posterior for $\theta$:]  Unlike the case for $\tau$ we cannot calculate a closed form density for $\theta$, given all other information.  Thus we need to use another Markov Chain technique just to draw from $p(\theta | \textmd{other stuff})$.  We could also create a ``griddy'' algorithm that approximates the posterior distribution on a grid.  Bayesian Methods in Finance suggest using an accept/reject algorithm.  The sampling method they suggest is actually somewhat slow and tedious.
+
+For the moment, let us suppose that the prior for $\theta = (\alpha, \beta, \omega)$ is uniform on the cube $[0,1]^3$.  When creating synthetic data this will indeed be the case, so we interpret this as an uninformative prior, outside of the knowledge that we have constrained our parameters to this specific cube.  There is some justification for our choice, for instance, we know that $\alpha + \beta$ must be less than one to be stationary.  We can think of $\omega$ as setting some sort of minimum amount of variance.  Clearly, we want all three parameters to be positive so that $\sigma_t^2$ is guarenteed to stay positive.
+
+Under our uniform prior distribution we know that the posterior distribution (assuming $\tau$ is fixed) is simply the likelihood itself, $L(\theta \; | r_{1:T}, \sigma_1^2)$.  The uniform prior also provides a classical interpretation of the posterior mode as the maximum likelihood estimate up to a normalizing constant.
+
+Bayesian methods in finance suggest the following for drawing from the posterior distribution, which, to reiterate, is just the likelihood normalized and restricted to $\theta$ in our unit cube.  First, use some sort of optimization procedure to calculate the mode of the posterior distribution, that is calculate the maximum likelihood, and the Hessian of the likelihood as well.  Then use the mode to center some unimodeal distribution along with the Hessian as a measure of covariance.
+
+At first, glance, it is unclear to me that we are guarenteed that the likelihood should even be unimodal, nonetheless we can go ahead and use the \texttt{optim} command in R to find search for the mode of the likelihood.  Actually, we will use the log likelihood to find the mode, which turns our product into a sum, which will be convenient for our own differentiation calculations by hand.  To simpliy notation, let us define $h_t = \sigma_t^2$.  Then the log likelihood $l(\theta | r_{1:T}, h_1)$ is given by
+\[
+l(\theta | r_{1:T}, h_1) = \frac{-1}{2} \sum_{j=1}^T 
+\Big[ \log (h_j) + \tau \frac{r_j^2}{h_j} \Big].
+\]
+Thus maximizing $l$ over $\theta$ is equivalent to minimizing $\sum_j  \log(h_j) + \tau r_j^2 / h_j $.  By default \texttt{optim} is set to minimize a given function.
+
+To remind the reader $h_j$ is a function of $\theta$, which can be defined recursively.  We can also drive an analytic expression for $h_j$, which we state presently, but it will actually be convenient to work with the recursive form.  Expanding a few terms of the recursion one sees that
+\[
+h_t = \omega \sum_{j=1}^{n} \beta^{j-1} + \alpha \sum_{j=1}^n \beta^{j-1} r_{t-j} + \beta^{n} h_{t-n}
+\]
+which gives us that
+\[
+h_t = \omega \sum_{j=1}^{t-1} \beta^{j-1} + \alpha \sum_{j=1}^{t-1} \beta^{j-1} r_{t-j} + \beta^{t-1} h_{1}.
+\]
+Now we are going to do the most naive thing we can possible do to study the kernel of the posterior distribution.  We are going to run the \texttt{optim} algorithm see what it produces and look at the graph of the likelihood.  The code for running the \texttt{optim} command is given in the file \texttt{MaxLL.R}.  You must first run \texttt{GenerateGARCH.R} to generate a sequence of data.  In particular, the procedure I have used to anlayize data is
+\begin{verbatim}
+source('GenerateGARCH.R'};
+source('MaxLL.R');
+ourput;
+\end{verbatim}
+Once I have found a posterior mode I like, which can be seen in the \texttt{output\$par} portion of \texttt{output}, I can plot the posterior distribution by running \texttt{PlotHelp.R}.  This creates a data file with grid and posterior values.  This can then be plotted in Gnuplot using the script \texttt{PlotHelp.gplot}.  (To run a script in Gnuplot type \texttt{load 'PlotHelp.gplot'}.)  An example is given in \texttt{PlotHelp.gplot} for writing these plots to file.  The file \texttt{GenerateData.R} provides an example of how to save a plot in R.
+
+When we run \texttt{GenerateGARCH.R} and \texttt{MaxLL.R} repeatedly we find vastly different values for the posterior mode.  For instance, the two series in figure \ref{fig:differentcondvar} produce vastly different posterior modes and extrema.  Perhaps this makes sense, though if my calculations are correct it would show an extreme sensitivity to the particular realization of the time series, at least in terms of the maximum value, perhaps that is not the case with the mode.  If this is the case, then it seems like this calibration is not that reliable.  However, this may be due to the fact that the time series I have been looking at have only been about 50 steps in length.  You can see in figure \ref{fig:posteriors} how one can arrive at very different posterior distributions (conditional on $\omega$ and $\tau$) for $(\alpha, \beta)$.  The last pair of images in figure \ref{fig:posteriors} corresponds to a time series of 1000 steps.  In that case the posterior distribution is centered much more reliably near the actual values of $\alpha$ and $\beta$.
+
+\begin{comment}
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.5]{../Images/condvar.jpg}
+\end{center}
+\caption{Two different conditional variance time series.  The red series produces a maximum (of the negative log likelihood) of 70.  The blue series prodcuces a maximum of -17.}
+\label{fig:differentcondvar}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.25]{../Images/garch01.jpg}
+\includegraphics[scale=0.25]{../Images/post01.jpg}
+
+\includegraphics[scale=0.25]{../Images/garch02.jpg}
+\includegraphics[scale=0.25]{../Images/post02.jpg}
+
+\includegraphics[scale=0.25]{../Images/garch03.jpg}
+\includegraphics[scale=0.25]{../Images/post03.jpg}
+
+\includegraphics[scale=0.25]{../Images/garch04.jpg}
+\includegraphics[scale=0.25]{../Images/post04.jpg}
+
+\end{center}
+\caption{Each pair of images is a time series and a posterior distribution for $\theta = (\alpha, \beta, \omega^*)$ where we have fixed $\omega^*$ to be the value of $\omega$ at the posterior mode.  Thus these are joint posterior distributions in $(\alpha, \beta)$ conditioned on $\omega = \omega^*$ and $\tau = 1$.  The first three pairs correspond to time series with 50 steps.  The last pair corresponds to a time series with 1000 steps.  The true values of our parameters are $\alpha = 2.0, \; \beta = 6.0, \; \omega = 1.0$.  We have fixed $\tau = 1$.}
+\label{fig:posteriors}
+\end{figure}
+\end{comment}
+
+The Bayesian methods in Finance books suggests using the posterior mode and the Hessian to produce a candidate Student's T distribution for an accept reject algorithm.  However, I have found that often times the Hessian matrix I calculate is not postive definite (or negative definite) which suggests that we are at a saddle point.  Furthermore, the negative eigenvalue which is causing the problem is a very small negative number, suggesting that our saddle is quite flat in one of its directions.  Perhaps this is what fools our numerical algorithm that tries to find the maximum likelihood.  This suggests to me that the method outlines in Bayesian Methods is only good if we have a sufficiently large data set; otherwise, we may need to make a ``griddy'' type calculation for the posterior.
+
+\end{description}
+
+\begin{comment}
+\section{Miscellany}
+
+\textbf{Connecting Densities to Random Variables}:
+Let $\mcF_t = \sigma(R_t, R_{t-1}, \ldots)$ be the filtration generated by the returns.  Under this filtration the conditional variance $\sigma^2_t$ is a predictable process.  In particular, $\sigma_1 \in \mcF_1$.  Following the Bayesian approach, we let $\Theta$ represent the random vector of unknown quantities.  Combining these two piecies of information, we set $I$ to be the \sigalg generated by $\Theta$ and $\mcF_1$.  Thus $I$ contains the information necessary to recursively define the distribution of $(R_t)$ in the future.  In particular,
+\begin{align*}
+\bbP \Big( \bo R \in \bo A  | I \Big) 
+& = \bbP(R_T \in A_T | \mcF_{T-1}, I) \times \bbP(R_{T-1} \in A_{T-1} | \mcF_{T-2}, I) \times \cdots \\
+& = \prod_{1}^{j=T} \bbP(R_j \in A_j | \mcF_{j-1}, I).
+\end{align*}
+Connecting this to densities, the joint density of $(R_1, \ldots, R_t)$ given $I$ can be written as $p(\bo r | I) = \bbP(\bo R \in d \bo r | I)$.  The joint density is then given by
+\begin{align*}
+\bbP \Big( \bo R \in d \bo r | \Theta = \theta, \sigma^2_1 = \sigma^2_1 \Big) 
+& = \bbP (R_T \in d r_T | \{R_i = r_i\}_{i=1}^{T-1}, \Theta = \theta, \sigma^2_1 = \sigma^2_1) \\
+& \;\; 
+\times 
+\bbP \Big(R_{T-1} \in d r_{T-1} | \{R_i = r_i\}_{i=1}^{T-2} , \Theta = \theta, \sigma^2_1 = \sigma^2_1 \Big) \times \cdots \\
+& = \prod_{1}^{j=T} \bbP(R_j \in d r_j | \{R_i = r_i\}_{i=1}^{j-1}, \Theta = \theta, \sigma^2_1 = \sigma^2_1).
+\end{align*}
+\textbf{This is a mess.}  Perhaps this shows why probabilists developed random variables, or why Bayesians stick to the density notation.  In the end, we construct a probability through known densities and hence there is nothing wrong with the Bayesian notation.  In fact, it is a more direct expression, since the probability measures and spaces we construct are, in the end, identically to densities on $\bbR^n$.  I suppose that the construction of a valid probability measure simply shows that we can take the finite dimensional distributions and extend them in a sane way.
+\end{comment}
+
+\section{A Dynamic Linear Model (Part I)}
+
+Dynamic linear models are quite versatile and their probabilistic structure sits on the foundation of normal random variables, which facilitates analysis.  However, this analysis can be somewhat tedious and one needs to familiarize themselves with the techniques through practice.  This sections records this practice.  In particular, we will start by looking at a particularly simple model governed by
+\[
+\begin{cases}
+y_t = \mu + x_t + \nu_t, & \nu_t \sim \mcN(0, V) \\
+x_t = \phi x_{t-1} + \omega_t, & \omega_t \sim \mcN(0, W).
+\end{cases}
+\]
+We observe data $y_{1:n}$ and want to infer the distribution posterior distribution of $(\mu, \phi, V, W)$ as well as the distribution of $x_{0:n}$.  We will simulate this joint distribution using Gibbs sampling.  To remind the reader, Gibbs sampling constructs a Markov chain by sampling one quantity, while conditioning on all other quantities.  The sampled value is then used when conditioning the next random variable in the sequence.
+
+\subsection{Sampling $x_{0:n}$ given everything else}
+
+The book Bayesian Methods in Finance makes reference to a paper by Polson, et al. which proposes sampling each $x_i$ individually, holding the other $x_i$ values as known.  However, West's notes show that this is not the most effect sampling procedure since these steps will have a high degree of correlation and hence slow convergence.  It is best to sample $p(x_{0:n} | y_{1:n}, \ldots)$.  West's notes tell use how we can go about doing this.  Specifically, we use Feed Forward Backward Sampling (FFBS).  We use the notation found in West's book.
+
+To see how this works we first look at the backward portion of this algorithm.  We are used to factoring Markov like objects as $p(x_{0:n}) = p(x_n | x_{n-1}) \cdots p(x_0)$.  Instead of going ``forward'', we want to go backwards, $p(x_0 | x_1) \cdots p(x_n)$.  To make this precise, let's think about $p(x_{0:n} | D_n)$ where we are implicitly conditioning on the parameters $(\mu, \phi, V, W)$.  We can factor this distribution as
+\begin{align*}
+p(x_{0:n} | D_n) & = p(x_0 | x_{1:n}, D_n) \; p(x_{1:n} | D_n) \\
+& = p(x_0 | x_{1:n}, D_n) p(x_1 | x_{2:n}, D_n) \; p(x_{2:n} | D_n) \\
+& \cdots \\
+& = \Big[ \prod_{i=0}^{n-1} p(x_i | x_{i+1:n}, D_n) \Big] \; p(x_n | D_n).
+\end{align*}
+We know the last factor, it is the density of $x_n$ given all the prior observations $D_n$.  This is something we can calculate from forward filtering!  Further each term $p(x_i | x_{i+1:n}, D_n)$ will simplify to $p(x_i | x_{i+1}, D_{i+1})$.
+
+Why do we consider going backwards in time?  Why don't we condition going forwards in time?  Going forward would produce something like
+\[
+p(x_n | x_{0:n-1}, D_n) p(x_{n-1} | x_{0:n-2}, D_{n-1}) \cdots p(x_1 | x_0, D_n) p(x_0 | D_n).
+\]
+The last term in this product is problematic.  Looking at Bayes we have that
+\[
+p(x_0 | y_{1:n}) \propto p(y_{1:n} | x_0) p(x_0).
+\]
+But $p(y_{1:n} | x_0)$ will produce a distribution so that each $y_i$ is tied to $x_0$ through the mean.  I think this leads to a situation where it becomes difficult to calculate the posterior $p(x_0 | y_{1:n})$.  Thus it is preferable to go backwards because the structure facilitates our calculations.  
+
+We will eventually see that the backward filtering has a very convenient form once we have done our forward filtering.  The forward filtering can be done analytically, and hence it is easy and efficient to filter forward.  The work that follows can be found in West's book.  It is included here to record the results of my own exercise in deriving these resutls.  Should you come back to this point remember and not have the forward filtering methods firmly stored in the fore of your brain, I suggest recreating these results.
+
+%%%%%%%%%% FORWARD FILTERING %%%%%%%%%%
+
+\subsubsection{Forward Filtering}
+
+West's book Dynamic Linear models is the go to reference for this material or any material on dynamics linear models.  All of this work is a recreation of his work.  Use his book as a reference.  It has been very helpful for me. 
+Remember that the system we are consider right now is
+\[
+\begin{cases}
+y_t = \mu + x_t + \nu_t, & \nu_t \sim \mcN(0, V) \\
+x_t = \phi x_{t-1} + \omega_t, & \omega_t \sim \mcN(0, W).
+\end{cases}
+\]
+The random variable $y_t$ is the quantity that we observe.  The random variable $x_t$ represents some sort of unobserved state.  Sometimes is will be covinent to refer to the observations we have accumulated, which we will refer to as $D_n = \sigma(y_1, \ldots, y_n, m_0, C_0)$.  Here $(m_0, C_0)$ are the parameters describing a normal prior distribution for $x_0$.
+We want to generate the distributions for
+\[
+(x_{t-1} | D_{t-1}) \ra (x_t | D_{t-1}) \ra (y_t | D_{t-1}) \ra (x_t | D_t).
+\]
+We will take $x_{t-1} | D_{t-1} \sim \mcN(m_{t-1}, C_{t-1})$ as our starting point.  Throughout $m_t$ and $C_t$ will refer to the mean and variance of $x_t$ given what we have observed up to time $t$.
+
+An essential point to this entire analysis is that everything evolves in a normal (or at least conditionally normal) way.  Thus $x_t$ is a sum of normal random variables and we may use the closure properties of normal random variables to calculate expectations, variances, and covariances.  To start with $p(x_t | D_{t-1}$, observe
+\[
+\bbE( x_t | D_{t-1}) = \bbE( \phi x_{t-1} + \omega_t | D_{t-1} ) = \phi m_{t-1}.
+\]
+\begin{align*}
+\Var (x_t | D_{t-1}) 
+& = \Var ( \phi x_{t-1} + \omega_t | D_{t-1} ) \\
+& = \phi^2 \Var(x_{t-1}) + \Var(\omega_t) \textmd{ by ind. } \\
+& = \phi^2 C_{t-1} + W \;\; (=: R_t).
+\end{align*}
+Thus $x_t | D_{t-1}$ is $\mcN(\phi m_{t-1}, \phi^2 C_{t-1} + W)$.
+
+Next, we want to find the predictive distribution for $y_t | D_{t-1}$.  Again we make use of closure under addition for normal random variables to conclude that $y_t$ is normal with expectation and variance given by
+\begin{align*}
+\bbE (y_t | D_{t-1}) 
+& = \bbE( \mu + x_t + \nu_t | D_{t-1}) \\
+& = \mu + \bbE(x_t | D_{t-1}) = \mu + \phi m_{t-1}.
+\end{align*}
+\begin{align*}
+\Var(y_t | D_{t-1}) 
+& = \Var( \mu + x_t + \nu_t | D_{t-1}) \\
+& = \Var( x_t | D_{t-1}) + \Var(\nu_t | D_{t-1}) \; \textmd{ by ind. } \\
+& = \phi^2 C_{t-1} + W + V \\
+& = R_t + V \;\; ( =: Q_t).
+\end{align*}
+Lastly, we want to find $x_t | Y_t, D_{t-1}$.  To do so we will construct the joint distribution of $(y_t, x_t) | D_{t-1}$ and then derive the conditional distribution we desire.  We could also go about this using Bayes Theorem.  But moving from a joint distribution to a conditional distribution is a nice calculation for normal random variables.
+
+We have the marginal distribution for $x_t$ and $y_t$ given $D_{t-1}$ thus we need to find the covariance between these two quantities.  In particular,
+\begin{align*}
+\Cov(y_t, x_t | D_{t-1}) \\
+& = \Cov(\mu + x_t + \nu_t, x_t | D_{t-1}) \\
+& = \Cov(x_t, x_t | D_{t-1}) \;\; \textmd{ by ind.} \\
+& = R_t.
+\end{align*}
+Thus the joint distribution of $(y_t, x_t) | D_{t-1}$ is
+\[
+\begin{pmatrix}
+y_{t} \\
+x_{t}
+\end{pmatrix} | D_{t-1} 
+\sim
+\mcN
+\Big(
+\begin{pmatrix}
+\mu + \phi m_{t-1} \\
+\phi m_{t-1}
+\end{pmatrix} ,
+\begin{pmatrix}
+Q_t & R_t \\
+R_t & R_{t}
+\end{pmatrix}
+\Big)
+\]
+To get the conditional distribution $(x_t | y_t, D_{t-1}$ we regress $x_t$ upon $y_t$.  (We can think of regressing $x_t$ upon $y_t$ as projecting $x_t$ onto the space spanned by $y_t$.  With normal random variables this corresponds to conditional expectation.  See my Blue Book of notes for a discussion.)
+
+Refering to chapter 17 of West's book we find that $(x_t|y_t, D_{t-1})$ is normal with expectation and variance given by
+\begin{align*}
+m_t & := \bbE(x_t | y_t, D_{t-1}) = \phi m_{t-1} + A_t (Y_t - (\mu - \phi m_{t-1}) ) \\
+C_t & := \Var(x_t | y_t, D_{t-1}) = R_t - R_t Q_t^{-1} R_t.
+\end{align*}
+The quantity $A_t = R_t Q_t^{-1}$ is called the regression matrix and corresponds to the vector which gives us our projection onto $y_t$.  Notice that our mean can be written as a weighted average
+\[
+m_t (1-A_t) \phi m_{t-1} + A_t (Y_t - \mu).
+\]
+We may reinterpret $C_t$ as a harmonic average of $R_t$ and $V$,
+\begin{align*}
+C_t & = R_t - R_t Q_t^{-1} R_t \\
+& = R_t (1 - R_t Q_t^{-1}) \\
+& = \frac{R_t V}{R_t + V} \\
+& = \frac{(\phi^2 C_{t-1} + W)(V)}{\phi^2 C_{t-1} + W + V}.
+\end{align*}
+
+%%%%%%%%%% BACKWARDDS CONDITIONING %%%%%%%%%%
+
+Thus we now know how to filter forward recursively, given the observations $y_{1:n}$.  When sampling $p(x_{0:n} | D_n)$ (implicitly conditioned on the other parameters) we need to keep in mind that the future data has a connection to states in the past.  As we stated earlier, we wanted to filter forward because we ill be able to conditionally factor ``backwards in time'' in a nice way.  This factoring will decouple those past values of $x_t$ from future observations given that we also know some intermediate value of $x_t$. 
+
+\subsubsection{Backwards Filtering}
+
+As stated earlier, backwards filtering will exploit the structure of our model to provide a convenient way to sample $x{0:n} | y_{1:n}$.  In particular we will see that this density factors as
+\[
+\Big[ \prod_{i=0}^{n-1} p(x_i | x_{i+1}, D_{i+1}) \Big] \; p(x_n | D_n).
+\]
+This shows that instead of drawing one large vector we can sequentially draw from one dimensional distributions.  We have reduced the complexity of our problem (the covariance structure) by conditioning in a clever way.  This is possible because we have a Markov chain.  The rest of this section is devoted to deriving this form of the density.
+
+First, we show that the term
+\(
+p(x_{t-1} | x_{t:n}, D_n)
+\)
+simplify to
+\(
+p(x_{t-1} | x_t, D_t).
+\)
+It will be helpful to rephrase this as $p(x_{t-1} | x_{t:n}, y_{1:n})$.  Using Bayes we have that
+\[
+p(x_{t-1} | x_{t:n}, y_{1:n}) \propto p(x_{t:n}, y_{t:n} | x_{t-1}, y_{1:t-1}) \; p(x_{t-1} | y_{1:t-1}).
+\]
+We know the last factor via forward filtering.  Thus we are left to consider the likelihood.  Doing some conditional factoring we have that
+\begin{align*}
+p(x_{t:n}, y_{t:n} | x_{t-1}, y_{1:t-1}) 
+& =
+p(y_{t:n} | x_{t:n}, x_{t-1}, y_{1:t-1}) \;
+p(x_{t:n} | x_{t-1}, y_{1:t-1}) \\
+& = 
+\underbrace{ p(y_{t:n} | x_{t:n}) }_{\textmd{ (1) no $x_{t-1}$'s !}} \;
+\underbrace{ p( x_{t:n} | x_{t-1}, y_{1:t-1} )}_{(2)}.
+\end{align*}
+Since term (1) does not include any $x_{t-1}$, we only need to consider (2),
+\(
+p(x_{t:n} | x_{t-1}, y_{1:t-1})
+\)
+which is equal to
+\begin{align*}
+p(x_{t:n} | x_{t-1}, y_{1:t-1})
+& = \underbrace{ p(x_n | x_{t:n-1}, x_{t-1}, \cancel{y_{1:{t-1}}} ) }_{= p(x_n | x_{n-1}) } \;
+p(x_{t:n-1} | x_{t-1}, \cancel{y_{1:t-1}} ) \\
+& = \ldots \textmd{ factoring } \\
+& = \underbrace{ \Big( \prod_{i=t+1}^n p(x_i | x_{i-1}) \Big) }_{\textmd{ no $x_{t-1}$'s! }} \; p(x_t | x_{t-1}).
+\end{align*}
+Hence the likelihood is proportional to $p(x_t | x_{t-1}$.  Putting together these facts about the likelihood and prior we find that the form of our kernel is
+\begin{align*}
+p(x_{t-1} | x_{t:n}, y_{1:n}) 
+& \propto 
+\underbrace{ p(x_{t} | x_{t-1}) }_{\textmd{Normal likelihood}} \;
+p(x_{t-1} | y_{1:{t-1}}) \\
+& \propto
+p(x_{t-1} | x_t, y_{1:t-1} ).
+\end{align*}
+To emphasize this, we remind the reader that we started with the density of $x_{t-1}$ conditioned on all future values $x_{t:n}$ and all observed values $y_{1:n}$ and showed that this is actually equivalent to the distribution of $x_{t-1}$ given the current value $x_{t}$ and all previously observed data $y_{1:t-1}$.  Mathematically speaking that is
+\begin{align*}
+p(x_{t-1} | x_{t:n}, y_{1:n}) & = p(x_{t-1} | x_{t}, y_{1:t-1}) \\
+& \propto p(x_t | x_{t-1}) \; p(x_{t-1} | y_{1:t-1} ).
+\end{align*}
+In terms of a probability model this can be stated as
+\[
+\begin{cases}
+x_t = \phi x_{t-1} + \omega_t \\
+x_{t-1} | D_{t-1} \sim \mcN(m_{t-1}, C_{t-1}).
+\end{cases}
+\]
+
+We can appeal to Bayes or Normal RV at this point.  We will use what we know about Normal RV's and in particular, our conditional - joint - conditional trick.  We need to calculate the expectation, the variance, and the covariance of $(x_t, x_{t-1})$ given $D_{t-1}$.  In particular, 
+\begin{align*}
+\bbE[ x_t | D_{t-1} ] 
+& = \bbE( \phi x_{t-1} + \omega_t | D_{t-1} ) \\
+& = \phi m_{t-1}.
+\end{align*}
+\begin{align*}
+\Var(x_t | D_{t-1}) 
+& = \Var(\phi x_{t-1} + \omega_t | D_{t-1}) \\
+& = \phi^2 \Var (x_{t-1} | D_{t-1}) \Var(\omega_t) \textmd{ by ind.} \\
+& = \phi^2 C_{t-1} + W \;\; (= : R_t).
+\end{align*}
+\begin{align*}
+\Cov (x_t, x_{t-1} | D_{t-1} ) 
+& = \Cov( \phi x_{t-1} + \omega_t, x_{t-1} | D_{t-1} ) \\
+& = \phi \Var( x_{t-1} | D_{t-1} ) \\
+& = \phi C_{t-1}.
+\end{align*}
+Hence
+\[
+\begin{pmatrix}
+x_{t} \\
+x_{t-1}
+\end{pmatrix} | D_{t-1} 
+\sim
+\mcN
+\Big(
+\begin{pmatrix}
+\phi m_{t-1} \\
+m_{t-1}
+\end{pmatrix} ,
+\begin{pmatrix}
+R_t & \phi C_{t-1} \\
+\phi C_{t-1} & C_{t-1}
+\end{pmatrix}
+\Big).
+\]
+The conditional $x_{t-1} | x_t, D_{t-1}$ is then normally distributed with $A_t'= \phi C_{t-1} / R_t$ and
+\begin{align*}
+\bbE( x_{t-1} | x_t, y_{1:t} ) = m_{t-1} + A_t' (x_t - \phi m_{t-1}).
+\end{align*}
+and
+\begin{align*}
+\Var(x_{t-1} | x_t, y_{1:t-1}) 
+& = C_{t-1} - \phi^2 C_{t-1} R^{-1}_t C_{t-1} \\
+& = C_{t-1} \Big( 1 - \frac{\phi^2 C_{t-1} }{\phi^2 C_{t-1} + W} \Big) \\
+& = \frac{C_{t-1} W}{\phi^2 C_{t-1} + W}.
+\end{align*}
+Note that all of these values, $R_t, C_{t-1}, m_{t-1}$ have already been computed via forward filtering!
+
+Thus we can now use the backward sample to draw
+\[
+p(x_{0:n} | y_{1:n}) 
+= \Big( \prod_{t=0}^{n-1} p(x_t | x_{t+1}, y_{1:t} ) \Big) p(x_n | y_{1:n}).
+\]
+We still need to calculated the conditional posterior densities for each of the parameters.
+
+\subsection{Drawing $\phi$ given everything else}
+
+We need to calculate $p(\phi | x_{0:n}, y_{1:n}, V, W, \mu)$.  Since only $x_{0:n}$ and $W$ play a part in the likelihood of $\phi$ this reduces to $p(\phi | x_{0:n}, W)$.  By Bayes Theorem we know that
+\[
+p(\phi | x_{0:n}, W) \propto p(x_{1:n} | \phi, x_0, W) p(\phi | x_0, W).
+\]
+We will assume that the prior distributions of $phi, x_0, and W$ are all independent, in which case $p(\phi | x_0, W) = p(\phi)$.  Thus Bayes theorem produces
+\[
+\propto p(x_{1:n} | \phi, x_0, W) p(\phi).
+\]
+We use the conditional independence built into $x$ to factor the likelihood term above as (recall $x_t = \phi x_{t-1} + \omega_t, \omega_t \sim \mcN(0,W)$),
+\begin{align*}
+p(x_{1:n} | \phi, x_0, W) 
+& = \prod_{t=1}^n p(x_t | x_{t-1}, \phi, x_0, W) \\
+& \propto \prod_{t=1}^n \frac{1}{\sqrt{W}} \exp \Big\{ \frac{-1}{2} \frac{(x_t - \phi x_{t-1})^2}{W} \Big\}.
+\end{align*}
+Turning the product into a sum of exponents we have that
+\[
+\frac{1}{W^{n/2}} \exp \Big[ \frac{-1}{2W} \sum_{t=1}^n (x_t - \phi x_{t-1})^2 \Big].
+\]
+Consider the sum by itself for the moment.  Completing the square for $\phi$, we have that
+\begin{align*}
+\sum_{i=1}^n (x_i - \phi x_{i-1})^2 
+& = \sum_{i=1}^n x_i^2 - 2 \phi x_i x_{i-1} + \phi^2 x_{i-1} \\
+& = phi^2 \Big( \sum_{i=1}^n x_{i-1}^2 \Big) - 2 \phi \Big( \sum_{i=1} x_i x_{i-1} \Big) + \sum_{i=1}^n x_i^2.
+\end{align*}
+Since we are worried about proportionality, we can drop any terms that are not tied to $phi$.
+
+I will call 
+\(
+g_0 = \sum_{i=1}^n x_{i-1}^2
+\)
+and 
+\(
+g_1 = \sum_{i=1}^n x_i^2
+\)
+since the letter $g$ reminds me of the letter $\gamma$ wich is oftened used when talking about sample autocovariance and the above sums are  the sample variance and sample autocovariance at lag one when properly normalized.  Thus are sum, up to some additive constant, becomes
+\(
+\phi^2 g_0 - 2 \phi g_1.
+\)
+Completing the square this is (note $g_1/g_0$ is like the sample autocorrelation at lag one)
+\begin{align*}
+g_0 (\phi^2 - 2 \phi \frac{g_1}{g_0} ) 
+& = g_0 ( \phi^2 - 2 \phi \frac{g_1}{g_0} + (\frac{g_1}{g_0})^2 ) + k \\
+& = g_0 (\phi - \frac{g_1}{g_0})^2 + k'.
+\end{align*}
+Thus we can rewrite the likelihood as
+\[
+\ell (\phi | x_{1:n}, x_0, W) \propto \exp \Big[ \frac{-1}{2W} g_0 \Big( \phi - \frac{g_1}{g_0} \Big)^2 \Big].
+\]
+This is a normal likelihood and hence it will be convenient to chose a normal prior for $\phi$.  Let $p(\phi) \sim \mcN(m_\phi, C_\phi)$.  
+
+To derive the posterior distribution for $\phi$ we use our Normal tricks.  Note that we can look at our likelihood as
+\(
+\propto \exp \Big[ \frac{-1}{2W} \frac{1}{g_0} (g_1 - g_0 \phi)^2 \Big].
+\)
+This is normal in $g_1$.  Thus we can look at this as a conditional distribution / likelihood multiplied by a prior
+\[
+p(g_1 | \phi, g_0, W) p(\phi),
+\]
+which corresponds to the system
+\[
+\begin{cases}
+g_1 = g_0 \phi + \mcN(0, W g_0) \\
+\phi \sim \mcN(m_\phi, C_\phi).
+\end{cases}
+\]
+We will use our conditional - joint - conditional trick again.  The mean, variance, and covariance we need to calculate are
+\[
+\bbE(g_1) = \bbE(g_0 \phi) = g_0 m_\phi.
+\]
+\begin{align*}
+\Var (g_1) 
+& = \Var (g_0 \phi) + W g_0 \\
+& = g_0^2 C_\phi + W g_0 = : Q 
+\end{align*}
+\begin{align*}
+\Cov(g_1, \phi) = \Cov( g_0 \phi, \phi) = g_0 C_\phi =: R.
+\end{align*}
+Thus the joint distribution is given by
+\[
+\begin{pmatrix}
+g_1 \\
+\phi
+\end{pmatrix} | D_{t-1} 
+\sim
+\Big(
+\begin{pmatrix}
+g_0 m_\phi \\
+m_\phi
+\end{pmatrix} ,
+\begin{pmatrix}
+Q & g_0 C_\phi \\
+g_0 C_\phi & C_\phi
+\end{pmatrix}
+\Big)
+\]
+Hence the conditional distribution $\phi | g_1$ is normal (by Chapter 17 of West) with
+\[
+\bbE(\phi | g_1) = 
+\underbrace{m_\phi}_{\textmd{marginal mean}} + 
+\underbrace{\frac{g_0 C_\phi}{g_0^2 C_\phi + g_0 W}}_{\textmd{Regression matrix}} +
+\underbrace{(g_1 - g_0 m_\phi)}_{\textmd{ adjustment }}. 
+\]
+\[
+\Var(\phi | g_1) = \frac{C_\phi g_0 W}{g_0^2 C_\phi + g_0 W}.
+\]
+Note that we can rewrite the variance as
+\[
+\frac{C_\phi g_0 W}{g_0^2 C_\phi + g_0 W} 
+=
+\frac{C_\phi \cdot (W/g_0) }{C_\phi + W/g_0} 
+\]
+which is the harmonic average of the prior variance and the variance of the likelihood.  This provdies another convenient trick when trying to calculate the posterior distribution when work with the means of normal distributions.  You can also interpret this as the posterior precision being the sum of the prior precision and the likelihood's precision.  Furthermore, for the mean, we can see this as a weighted average of the means where the weighting is determined by their respective precisions.  In particular,
+\[
+\textmd{post. mean} = \frac{1}{C_\phi} \frac{1}{\textmd{post. prec.}} m_\phi + \frac{1}{W/g_0} \frac{1}{\textmd{post. prec}} \frac{g_1}{g_0}.
+\]
+Thus if the precision of the likelihood is larger than the precision of the prior, then more weight will be put on the precision of the likelihood (and vica versa).  Given the posterior mean and variance of $\phi | x_{0:n}, W$ we can draw from its posterior distribution.
+
+\subsection{Drawing $\mu$ given everything else}
+
+Recall, we are working with the model
+\[
+\begin{cases}
+y_t = \mu + x_t + \nu_t, & \nu_t \sim \mcN(0, V) \\
+x_t = \phi x_{t-1} + \omega_t, & \omega_t \sim \mcN(0, W).
+\end{cases}
+\]
+By Bayes theorem we have that
+\[
+p(\mu | y_{1:n}, x_{0:n}, W, \phi)
+\propto
+p(y_{1:n} | \mu, x_{0:n}, W, \phi) \; p(\mu | x_{0:n}, W, \phi).
+\]
+Regarding the ``conditional prior,'' $p(\mu | x_{0:n}, W, \phi)$, we have that
+\begin{align*}
+p(\mu | x_{0:n}, W, \phi) 
+& \propto p(x_{0:n}, \mu, \phi, W) \; p(\mu | \phi, W) \\
+& \propto p(x_{0:n} | \phi, W) \; p(\mu) \\
+& \propto p(\mu).
+\end{align*}
+Thus the data states $x_{0:n}$ are conditionally irrelevant to $\mu$.  Hence we have that
+\[
+p(\mu | y_{1:n}, x_{0:n}, W, \phi) \propto
+p(y_{1:n} | \mu, x_{0:n}, \phi, W) p(\mu). 
+\]
+Reconsider the model
+\[
+\begin{cases}
+y_t = \mu + x_t + \nu_t, & \nu_t \sim \mcN(0, V) \\
+x_t = \phi x_{t-1} + \omega_t, & \omega_t \sim \mcN(0, W).
+\end{cases}
+\]
+for a moment.  Notice that we can decompose our likelihood according to 
+\begin{align*}
+\prod_{i=1}^n p(y_i | \mu, x_i) 
+& \propto \frac{1}{V^{1/2}} \exp \Big[ \frac{-1}{2V} (y_i - (\mu + x_i))^2 \Big] \\
+& = \frac{1}{V^{n/2}} \exp \Big[ \frac{-1}{2V} \sum_{i=1}^n (y_i - (\mu + x_i))^2 \Big].
+\end{align*}
+Considering the sum in the exponent, we have that
+\[
+\sum_{i=1}^n (y_i - (\mu + x_i))^2 = \sum_{i=1}^n [ (y_i - x_i)^2 - 2 \mu (y_i - x_i) + \mu^2].
+\]
+We want to complete the square.  We only need to keep track of things up to a constant, which we will denote by a generic constant $k$.  Thus the above sum is
+\begin{align*}
+& = k - 2 \mu \sum_{i=1}^n (x_i - y_i) + n \mu^2 \\
+& = k + n [\mu^2 - 2 \mu \frac{1}{n} \sum_{i=1}^n (y_i - x_i) ].
+\end{align*}
+Let's call $a := \frac{1}{n} \sum_{i=1}^n (y_i - x_i)$ since it is a sample average.  Continuing the above string of equalities
+\begin{align*}
+& = k + n [ \mu^2 - 2 \mu a + a^2 ] \\
+& = k + n (\mu - a)^2.
+\end{align*}
+Thus our liklihood is normal with
+\[
+\ell (\mu | y_{1:n}, x_{0:n}) \propto
+\exp \Big[ \frac{-n}{2V} (\mu - a)^2 \Big].
+\]
+To simplify our calculations we take $\mu$ to be normal.  let $\mu \sim \mcN(m_\mu, C_\mu)$.  The ``mean'' of our likelihood is $a$ and the ``variance'' of our likelihood is $V/n$.  To remind the reader, the rules we observed from the last section is that the posterior precision is the sum of the precisions from the likelihood and prior and that the mean is a weighted average of the likelihood mean and prior mean according to their respective precisions.  In our case the prior precision is $1/C_\mu$ and the likelihood precision is $n/V$.  Thus the posterior precision is given by $(1/C_\mu + n/V)$ and the posterior variance is given by
+\[
+\Var(\mu | y_{1:n}, x_{0:n}) = \frac{C_\mu V}{V+ n C_\mu}
+\]
+and the posterior mean is given by
+\begin{align*}
+\bbE[\mu | y_{1:n}, x_{0:n}) 
+& = \frac{1}{C_\mu} \frac{C_\mu V}{V+ n C_\mu} m_\mu + \frac{n}{V} \frac{C_\mu V}{V+ n C_\mu} a \\
+& = \frac{V}{n C_\mu + V} m_\mu + \frac{n C_\mu}{n C_\mu + V} a.
+\end{align*}
+
+\subsection{Draing $W$ given everything else}
+
+Lastly, we want to derive the posteriro distribution for $W$. From our model's structure we know that [picture].  Thus we only expect $\phi$ and $x_{0:n}$ to matter.  To show that consider the following
+\[
+p(W | y_{1:n}, x_{0:n}, \phi) 
+\propto p(y_{1:n}, x_{0:n} | W, \phi) p(W | phi).
+\]
+The last term reduces to $p(W)$ since we chose our prior distributions to be independent ($p(W|phi) = p(W)p(\phi)/p(\phi) = p(W)$).  Examining the likelihood we have that
+\begin{align*}
+p(y_{1:n}, x_{0:n} | W, \phi) 
+& = p(y_{1:n} | x_{0:n}, W, \phi) p(x_{0:n} | W, \phi) \\
+& = 
+\underbrace{ \prod_{i=1}^n p(y_i | x_i) }_{\textmd{ no $W$ }}
+p(x_{0:n} | W, \phi).
+\end{align*}
+Thus $p(W | y_{1:n}, x_{0:n}, \phi) \propto p(x_{0:n} | W, \phi) p(W)$.  Thus we indeed have that $y_{1:n}$ is irrelevant.  We have seen this likelihood before.  In particular, we know that
+\begin{align*}
+p(x_{0:n} | W, \phi) 
+& = \prod_{i=1}^n p(x_i | x_{i-1}, W, \phi) \\
+& \propto \prod_{i=1}^n \frac{1}{W^{n/2}} \exp \Big[ \frac{-1}{2W} (x_i - \phi x_{i-1})^2 \Big] \\
+& \propto \frac{1}{W^{n/2}} \exp \Big[ \frac{1}{2W} \sum_{i=1}^n (x_i - \phi x_{i-1})^2 \Big],
+\end{align*}
+which is an inverse gamma likelihood.  Specifically,
+\[
+\ell (W | x_{0:n}, \phi) \propto (\frac{1}{W})^{n/2} \exp \Big[ \frac{-1}{W} \frac{1}{2} \sum_{i=1}^n (x_i - \phi x_{i-1})^2 \Big].
+\]
+We chose an inverse Gamma prior for $W$, since it is conjugate.  In particular, we chose $W \sim \textmd{Inv-Ga}(a/2, b/2)$,
+\[
+p(W) \propto (\frac{1}{W})^{a/2 + 1} \exp \Big[ \frac{-1}{W} \frac{b}{2} \Big].
+\]
+Thus the posterior distribution for $W$ is given by
+\begin{align*}
+p(W | x_{0:n}, \phi) 
+& \propto \ell(W | x_{0:n}, \phi) p(W) \\
+& \propto (\frac{1}{W})^{n/2 + a/2 + 1} \exp \Big[ \frac{-1}{W} \frac{1}{2} \Big( b + \sum_{i=1}^n (x_i - \phi x_{i-1})^2 \Big) \Big].
+\end{align*}
+Thus we can update our prior for $W \sim \textmd{Inv-Ga}(a/2, b/2)$ through $a^* = a + n$ and $b^* = b + \sum_{i=1}^n (x_i - \phi x_{i-1})^2$ to $p(W | x_{0:n}, \phi) \sim \textmd{Inv-Ga}(a^*/2, b^*/2)$.  Now that we have all of our Gibbs steps we can simulate the posterior distribution jointly in $x_{0:n}, \phi, \mu, W$ given $y_{1:n}$.
+
+\begin{aside}
+It is best to just drill yourself on these techniques: conjugate priors, likelihood manipulation, condition to joint, joint to conditional.  I've been doing this for two days now.  It helps to start with a simple situation and then make things more complicated.
+\end{aside}
+
+\begin{aside}[The Code]
+The R code that generates synthetic data for this model and then infers the parameters for the model using the methods described above can be found in \texttt{Code/Examples/DLM0}.  A modified version of the above model, when the innovation $\nu_t$ is allowed to have nonzero mean is implemented in \texttt{Code/Examples/DLM1}.
+\end{aside}
+
+If you read West's notes you find that his is not he most efficient implementation.  In particular, our draws from $\mu |$ everything else and our draws from $x_{0:n} | $ everything else are (negatively) correlated and hence slow down convergence.  (Ideally, you make independent draws.) You can make a change of variables to rememdy this problem.
+
+\section{Another Dynamic Linear Model (Part II)}
+
+As mentioned at the end of the last section, our Gibbs sampler has some peculiar behavior becasue $y_t$ informs the quanity of $\mu + x_t$ directly, but not each quanity individually.  To work around this problem we do a change of variables and let $z_t = \mu + x_t$.  In this case, our model from above becomes
+\[
+\begin{cases}
+y_t = z_t + \nu_t, & \nu_t \sim \mcN(m_\nu, V) \\
+z_t = \mu + \phi (z_{t-1} - \mu) + \omega_t, & \omega_t \sim \mcN(0, W).
+\end{cases}
+\]
+We plan to follow an almost identical sampling scheme, however, we have to adjust our work slightly.  In particular, $\mu$ is now conditioanlly independent of $y_t$ given $z_t$.  This does not change things significantly, as you will see.  We will depart from prose at this point and proceed to an abbreviated description.
+
+\subsection{Sampling  $z_{0:t}$ given everything else}
+
+\subsubsection{Forward Filter}
+
+We need
+\begin{itemize}
+\item $p(z_{t-1} | D_{t-1})$
+\item $p(z_{t} | D_{t-1})$
+\item $p(y_t | D_{t-1})$
+\item $p(z_t | D_t)$.
+\end{itemize}
+We have assumed that $p(z_{t-1} | D_{t-1}) \sim \mcN(m_{t-1}, C_{t-1})$.
+
+\begin{description}
+
+\item[$p(z_t | D_{t-1})$] is Normal with
+\begin{align*}
+\bbE ( z_t | D_{t-1} ) 
+& = \bbE( \mu + \phi(z_{t-1} - \mu) + \omega_t| D_{t-1}) \\
+& = \mu + \phi (m_{t-1} - \mu).
+\end{align*}
+\begin{align*}
+\Var(z_t | D_{t-1}) 
+& = \Var(\mu + \phi (z_{t-1} - \mu) + \omega_t | D_{t-1}) \\
+& = \phi^2 \Var(z_{t-1}) + \Var (\omega_t) \\
+& = \phi^2 C_{t-1} + W =: R_t.
+\end{align*}
+
+\item[$p(y_t | D_{t-1})$] is Normal with
+\begin{align*}
+\bbE( y_t | D_{t-1}) 
+& = \bbE (z_t + \nu_t | D_t) \\
+& = \bbE (z_t | D_{t-1}) + \bbE(\nu_t | D_{t-1}) \\
+& = \mu + \phi (m_{t-1} - \mu) + m_\nu.
+\end{align*}
+\begin{align*}
+\Var(y_t | D_{t-1}) 
+& = \Var (z_t + \nu_t | D_{t-1}) \\
+& = \Var (z_t | D_{t-1}) + \Var(\nu_t | D_{t-1}) \\
+& = R_t + V =: Q_t.
+\end{align*}
+
+\item[$p(x_t | D_{t-1}, y_t)$]  We use our conditional - joint - conditional trick.
+\begin{align*}
+\Cov (z_t, y_t | D_{t-1}) 
+& = \Cov( z_t, z_t + \nu_t | D_{t-1}) \\
+& = \Var (z_t | D_{t-1}) = R_t.
+\end{align*}
+
+Hence
+\[
+\begin{pmatrix}
+y_t \\
+z_t
+\end{pmatrix} | D_{t-1} 
+\sim
+\mcN
+\Big(
+\begin{pmatrix}
+\mu + \phi(m_{t-1} - \mu) + m_\nu \\
+\mu + \phi(m_{t-1} - \mu)
+\end{pmatrix} ,
+\begin{pmatrix}
+Q_t & R_t \\
+R_t & R_t
+\end{pmatrix}
+\Big).
+\]
+
+\end{description}
+
+Thus $p(z_t | D_t)$ is normal with $(A_t = R_t/Q_t)$ mean and variance
+\begin{align*}
+\bbE(z_t | D_t) 
+& = \mu + \phi(m_{t-1} - \mu) + A_t \Big( y_t - [ \mu + \phi(m_{t-1} - \mu) + m_\nu] \Big)
+\end{align*}
+\begin{align*}
+\Var(z_t | D_t) 
+& = R_t - R_t Q_t^{-1} R_t \\
+& = \frac{R_t V}{R_t + V}
+\end{align*}
+
+\subsubsection{Backwards Filtering}
+We should probably justify our backwards filtering again, given the modified structure of our model.  I will use the abbreviation e.e. for everthing else.  If e.e. is not written it is ipmlicitly assumed.
+\begin{align*}
+p(z_{0:n} | y_{1:n}, e.e.) 
+& = p(z_0 | z_{1:n}, y_{1:n}, e.e.) \; p(z_{1:n} | y_{1:n}, e.e.) \\
+& = p(z_0 | z_{1:n}, y_{1:n}, e.e.) \; p(z_1 | z_{2:n}, y_{1:n}, .e.e) \ldots \\
+& = \ldots \\
+& = \Big[ \prod_{i=1}^{n} p(z_{i-1} | z_{i:n}, y_{1:n}) \Big] \; p(z_n | y_{1:n}).
+\end{align*}
+The last term in our factorization is known from the forward filter.  We simplify things further by looking at each term within the product.  In particular, (implicitly on everyting else)
+\begin{align*}
+p(z_{i-1} | z_{i:n}, y_{1:n})
+& \propto p(z_{i:n}, y_{i:n} | z_{i-1}, y_{1:i-1}) \; p(z_{i-1} | y_{1:i-1})
+\end{align*}
+The term $p(z_{i:n}, y_{i:n} | z_{i-1}, y_{1:i-1})$ can be factored further as
+\begin{align*}
+& = p(y_{i:n} | z_{i:n}, z_{i-1}, y_{1:i-1}) \; p(z_{i:n} | z_{i-1} y_{1:i-1}) \\
+& = \underbrace{ p(y_{i:n} | z_{i:n}) }_{\textmd{no $z_{i-1}$!}} \;
+p(z_{i:n} | z_{i-1}, y_{1:i-1}).
+\end{align*}
+Lastly, the term $p(z_{i:n}, z_{i-1}, y_{1:i-1})$ can be factored as
+\begin{align*}
+\prod_{t=i}^n p(z_t | z_{t-1}, z_{i-1}, y_{1:i-1}) \propto p(z_i | z_{i-1}, y_{1:i-1}).
+\end{align*}
+Thus we may conclude that
+\begin{align*}
+p(z_{i-1} | z_{i:n}, y_{1:n})
+& = p(z_{i-1} | z_i, y_{1:i-1}) \\
+& \propto p(z_i | z_{i-1}, y_{1:i-1}) \; p(z_{i-1} | y_{1:i-1}) \\
+& \propto p(z_i | z_{i-1}) \; p(z_{i-1} | y_{1:i-1}).
+\end{align*}
+Thus our density for $z_{0:n}$ can be written
+\[
+p(z_{0:n} | y_{1:n}) = \Big[ \prod_{i=1}^n p(z_{i-1} | z_i, y_{1:i-1}) \Big] \; p(z_n | y{1:n}).
+\]
+Thus we can sample backwards to sample from the joint distribution of $z_{0:n}$ using an analytic solution.  To calculate $p(z_{i-1} | z_i, y_{1:i-1})$ we use the fact that this is proportional to $p(z_i | z_{i-1}) \; p(z_{i-1} | y_{1:i-1})$ which corresponds to the system
+\[
+\begin{cases}
+z_t = \mu + \phi(z_{t-1} - \mu) + \omega_t \\
+z_{t-1} | D_{t-1} \sim \mcN(m_{t-1}, C_{t-1}).
+\end{cases}
+\]
+Thus we may use our conditional - joint - conditional trick to find the conditional density of $z_{t-1}$ given $z_t$.  In particular, recall that
+\[
+\bbE(z_t | D_{t-1}) = \mu + \phi (m_{t-1} - \mu)
+\]
+\[
+\Var(z_t | D_{t-1}) = \phi^2 C_{t-1} + W = R_t
+\]
+\[
+\Cov(z_t, z_{t-1} | D_{t-1}) = \phi \Var(z_{t-1} | D_{t-1}) = \phi C_{t-1}.
+\]
+Thus
+\[
+\begin{pmatrix}
+z_t \\
+z_{t-1}
+\end{pmatrix} | D_{t-1} 
+\sim
+\mcN
+\Big(
+\begin{pmatrix}
+\mu + \phi (m_{t-1} - \mu)  \\
+m_{t-1}
+\end{pmatrix} ,
+\begin{pmatrix}
+R_t & \phi C_{t-1} \\
+\phi C_{t-1} & C_{t-1}
+\end{pmatrix}
+\Big).
+\]
+Thus $z_{t-1} | z_t , D_{t-1}$ is normal (let $A_t' = \phi C_{t-1} / R_t$) with mean and variance
+\[
+\bbE (z_{t-1} | z_{t}, D_{t-1}) = m_{t-1} + A_t' (z_t - [\mu + \phi (m_{t-1} - \mu)] )
+\]
+\[
+\Var(z_{t-1} | z_{t}, D_{t-1}) = \frac{C_{t-1} W}{\phi^2 C_{t-1} + W}.
+\]
+Hence we can generate $p(z_0:n | y_{1:n})$ by sampling from $p(z_n | y_{1:n})$ followed by $p(z_{n-1} | z_n, y_{1:n-1}$ followed by $p(z_{n-2} | z_{n-1}, D_{n-2})$ and so on.
+
+\subsection{Sampling $\mu$ given everything else}
+
+By performing the change of variables, we have actually decoupled $\mu$ form our observations $y_{1:n}$.  Thus we have that
+\begin{align*}
+p(\mu | e.e.) 
+& \propto p(z_{0:n} | \mu, \phi, W) \; p(\mu | \phi, W)
+\end{align*}
+The likelihood/conditional density can be factored as
+\[
+\Big[ \prod_{i=1}^n p(z_i | z_{i-1}, \mu, \phi, W) \Big] \; p(z_0 | \mu, \phi, W).
+\]
+Consider the prodcut by itself we have that it is proportional to
+\[
+\prod_{i=1}^n \frac{1}{W^{1/2}} \exp \Big[ \frac{-1}{2W} (z_i - [\mu + \phi(z_{i-1} - \mu)])^2 \Big] 
+\propto
+\frac{1}{W^{n/2}} \exp \Big( \frac{-1}{2W} \Big[ \sum_{i=1}^n (z_i - [\mu + \phi(z_{i-1} - \mu)])^2 \Big] \Big).
+\]
+Looking at the sum we see
+\begin{align*}
+\sum_{i=1}^n \Big( (z_i - \phi z_{i-1}) - (1-\phi) \mu \Big)^2
+& = \sum_{i=1}^n (z_i- \phi z_{i-1})^2 - 2 (1-\phi) \mu \sum_{i=1}^n (z_i - \phi z_{i-1}) + (1-\phi)^2 \mu^2 n \\
+& = k + (1-\phi)^2 n \Big[ \mu^2 - 2 \mu \frac{a}{1-\phi} \Big] \\
+& \; \; \textmd{ where } a = \frac{1}{n} \sum_{i=1}^n (z_i - \phi z_{i-1}) \\
+& = k + (1-\phi)^2 n \Big( \mu - \frac{a}{1-\phi} \Big)^2. 
+\end{align*}
+Thus the likelihood for $\mu$ is given by
+\[
+\ell (\mu | e.e) \propto \exp \Big[ \frac{-(1-\phi)^2 n}{2W} \Big(\mu - \frac{a}{1-\phi} \Big)^2 \Big].
+\]
+Assuming $\mu$ has a normal prior $\mcN(m_\mu, C_\mu)$ we have that the posterior precision is $\frac{1}{C_\mu} + \frac{(1-\phi)^2 n}{W}$ and hence that
+\[
+\Var(\mu | e.e.) = \frac{C_\mu W}{(1-\phi)^2 \; n \; C_\mu + W}
+\]
+and
+\[
+\bbE(\mu | e.e.) = \frac{W}{(1-\phi)^2 \; n \; C_\mu + W} m_\mu + \frac{(1 - \phi)^2 \; n \; C_\mu}{(1-\phi)^2 \; n \; C_\mu + W} \; \frac{a}{1-\phi}.
+\]
+
+\subsection{Sapmling $\phi$ given everything else}
+
+Recall that $z_t = \mu + \phi (z_{t-1} - \mu) + \omega_t$.  By Bayes:
+\[
+p(\phi | z_{0:n}, \mu, W) = 
+\underbrace{p(z_{0:n} | \phi, \mu, W)}_{\downarrow}
+\;  p(\phi | \mu, W)
+\]
+\[
+\Big[ \prod_{i=1}^n \underbrace{p(z_t | z_{t-1}, \phi, \mu, W)}_{\downarrow} \Big]
+\; \underbrace{ p(z_0 | \phi, \mu, W)}_{\textmd{no $\phi$}}
+\]
+\[
+p(z_t | z_{t-1}, \phi, \mu, W) \propto \exp \Big[ \frac{-1}{2W} \Big( z_t - [\mu + \phi (z_{t-1} - \mu)] \Big)^2 \Big]
+\]
+Hence the product above becomes
+\[
+\propto \exp \Big[ \frac{-1}{2W} \sum_{i=1}^n ( (z_i - \mu) - \phi(z_{i-1} - \mu))^2 \Big]
+\]
+Let us substitute $x_i = z_i - \mu$.
+Considering the sum and completing the square this is then
+\begin{align*}
+\sum_{i=1}^n (x_i - \phi x_{i-1})^2 
+& = k + \phi^2 \sum_{i=1}^n x_{i-1}^2 - 2 \phi \sum_{i=1}^n x_i x_{i-1} \\
+& \; g_0 = \sum_{i=1}^n x_{i-1}^2, \;\;   
+\rho_1 = \frac{1}{g_0} \sum_{i=1}^n x_i x_{i-1} \\
+& = k + g_0 ( \phi - \rho_1 )^2.
+\end{align*}
+Hence the likelihood is
+\[
+\ell(\phi | e.e.) \propto \exp \Big[ \frac{-g_0}{2W} (\phi - \rho_1)^2 \Big].
+\]
+Assuming we have a normal prior $p(\phi) \sim \mcN(m_\phi, C_\phi)$ we have a normal posterior for $\phi$ with precision $\frac{1}{C_\phi} + \frac{g_0}{W}$ and posterior variance
+\[
+\Var(\phi | e.e.) = \frac{C_\phi \; W/g_0}{C_\phi + W/g_0}
+\]
+and mean
+\[
+\bbE(\phi | e.e.) = \frac{W/g_0}{C_\mu + W/g_0} m_\phi + \frac{C_\phi}{C_\phi + W/g_0} \rho_1.
+\]
+
+\subsection{Sapmling $W$ given everything else}
+
+By Bayes
+\[
+p(W | z_{0:n}, \phi, \mu) 
+\propto 
+\underbrace{p(z_{0:t} | W, \phi, \mu)}_{\downarrow} \; p(W | \phi, \mu).
+\]
+\[
+\Big[ \prod_{i=1}^n 
+\underbrace{p(z_i | z_{i-1}, W, \phi, \mu)}_{\downarrow} \Big]
+\; \underbrace{p(z_0 | W, \phi, \mu)}_{\textmd{no $W$!}}.
+\]
+\[
+\propto \prod_{i=1}^n \frac{1}{W^{1/2}} \exp \Big[ \frac{-1}{2W} (z_i - \mu - \phi (z_{i-1} - \mu) )^2 \Big]
+= \frac{1}{W^{n/2}} \exp \Big[ \frac{-1}{2W} \sum_{i=1}^n (z_i - \mu - \phi(z_{i-1} - \mu) )^2 \Big].
+\]
+If we assume that $W$ has an inverse gamma prior $\textmd{Inv-Ga}(a/2, b/2)$, that is
+\[
+p(W) \propto \Big(\frac{1}{W} \Big)^{a/2 + 1} \exp \Big[ \frac{-1}{W} \frac{b}{2} \Big]
+\]
+then the posterior for $W$ given everythign else is
+\[
+p(W | e.e.) = \Big( \frac{1}{W} \Big)^{a/2 + n/2 + 1} 
+\exp \Big[ \frac{-1}{W} \frac{1}{2} \Big( b + \sum_{i=1}^n (z_i - \mu - \phi (z_{i-1} - \mu))^2 \Big) \Big].
+\]
+Hence the posterior is Inv-Ga$(a^*/2, b^*/2)$ with $a^* = a + n$ and $b^* = b + \sum_{i=1}^n (z_i - \mu - \phi (z_{i-1} - \mu))^2$.  Performing a change of variables $x_t = z_t - \mu$ this is Inv-Ga$(a^*/2, b^*/2)$ with $a^* = a + n$ and $b^* = b + \sum_{i=1}^n (x_i - \phi x_{i-1})^2$.  
+
+\begin{aside}[The Code]
+The R code that generates synthetic data for this model and estimates the parameters for this model using the inferential procedure described above can be found in \texttt{Code/Examles/DLM2}.
+\end{aside}
+
+\subsection{Informal Validation}
+
+We want to check that our code is doing the right thing.  There are a few simple ways to double check this.  Gibbs sampling facilitates checking each variable one at a time.  For instance, suppose we want to check that our inferences for $\mu$ are correct.  Since we chose a conjugate prior for $\mu$, we know its posterior distribution should be given that all other variables are fixed.  If our code is correct we should (essentially) be able to fix all other variables by commenting out the Gibbs step that updates them.  Running the the code should then produce a stream of data for $\mu$ whose histogram matches the analytical posterior distribution for $\mu$.
+
+We should also be able to check each new iteration of our model using the previous simplified version.  For instance, the \texttt{DLM0} code has $\bbE[\nu_t] = 0$.  The \texttt{DLM1} code let's $\bbE[\nu_t]$ be nonzero.  We can check the \texttt{DLM1} code by setting $\bbE[\nu_t] = 0$ and comparing the output with \texttt{DLM1}.  It should produce the same (modulo some randomness) output.
+
+One final check is to generate a huge time series and see if our inferences for $\mu$, $\phi$, and $W$ converge on their actual values.  As the length of the time series grows, these posterior distributions should have less variance.
+
+We generated synthetic data, which can be found in the \texttt{DLM2} directory under the names \texttt{y.data} and \texttt{z.data}.  The parameters we used for our synthetic data along with the prior parameters for that variable and the seed value for the MCMC are in the table below.
+
+\begin{center}
+\begin{tabular}{c | c | c | c}
+Variable & TrueValue & Prior & MCMC Seed\\
+\hline
+$\mu$ & 0.5 & $\mcN(0, 1)$ & 0 \\
+\hline
+$m_\nu$ & 0.3 & - & - \\
+\hline
+$V$ & 0.2 & - & - \\
+\hline
+$\phi$ & 0.8 & $\mcN(0.5, 0.5)$ & 0.5 \\
+\hline
+$W$ & 0.5 & $\mathcal{IG}(2.0/2, 2.0/2)$ & 0.6 \\
+\hline
+$z_0$ & 0.1 & $\mcN(0,5)$ & 0.2
+\end{tabular}
+\end{center}
+
+It is important to remember that the inferences we make depend upon \emph{the data that we have}.  If you somehow draw data that comes from the tail of a distribution, then your inferences will be worse than if you get lucky and draw near the mode of a distribution.  Since we created synthetic data we know exactly what the parameters are.  We also know exactly what $z$ is, something that we wouldn't know in real life.  Let's take a moment and examine $z$ to get an idea of how this will affect our inferences.  Below is a plot of the running average of $z$ from step $0$ to step $1000$ and a plot of the running average from step $0$ to step $10000$.
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.45]{../Images/DLM2_Running_Ave_1000.jpg}
+\includegraphics[scale=0.45]{../Images/DLM2_Running_Ave_10000.jpg}
+\end{center}
+\end{figure}
+
+You can see that the draw we happen to have for $z$ takes a long time to return towards its average value of $\mu = 0.5$.  We can rewrite the equation for $z_t$ as
+\[
+z_{t} = z_{t-1} + (1 - \phi) [\mu - z_{t-1}] + \omega_t.
+\]
+Here you see that we revert back towards $z_t$ at a ``rate'' of $(1-\phi)$.  When $\phi$ is close to one the sample mean of $z_t$ moves rather slowly to its long term mean.  Part of this is due to my choice of $z_0 = 0.1$.  By starting far away from the mean we will need a long sequence of $z$ for the running average of $z$ to converge towards $\mu$.
+
+This has consequences for estimation of the parameters of the system.  For instance, the posterior draw of $\mu$ given everything else has mean roughly equal to the the sample mean
+\[
+\frac{1}{n} \sum_{i=1}^n z_i
+\]
+where $z$ is a draw from our MCMC and $i$ indexes time.  We have supressed the index indicating which draw of $z$ we have.  This is precisely the running average of $z$ we have been refering to.  Thus looking only at the first $1000$ draws from $y$ should provide a posterior distribution for $\mu$ that is below the actual value $0.5$.  This effect is most pronouned if we look only at something like the first 100 steps of $z$.  Here the sample mean of our true data $z$ for the first 1001 steps is $0.36$.  Notice that this matches the posterior mean for $\mu$.
+
+We want to check that our estimate of $\phi$ makes sense as well.  As you can see from the plot, the histogram for $\phi$ is near the actual value, $0.8$, but is somewhat to the right of that.  Does this make sense.  Examining the posterior distribution for $\phi$ given everything else we see that for large time series the dominant value should be $\rho_1 = g_1/g_0$ where $g_0 = \sum_{i=1}^n x_{i-1}^2$ and $g_1 = \sum_{i-1}^n x_i x_{i-1}$.  We have changed $z$ back to $x$ by $x_t = z_t - \mu$.  Looking at the true data for $z$ and $\mu$ we find that $g_0 = 1588.83$ and $g_1 = 1301.6$, which yields $\rho_1 = 0.82$, which is very close to the posterior mean of $\phi$.  Thus it does appear that estimate aligns with the synthetic data.
+
+\begin{center}
+\begin{tabular}{c | c | c}
+Variable & Marginal Mean & Marginal Variance \\
+\hline
+$\mu$ & 0.376 & 0.0163 \\
+$W$ & 0.524 & 0.00134 \\
+$\phi$ & 0.821 & 0.000414 \\
+\end{tabular}
+\end{center}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.3]{../Images/DLM2_Test_TS_100.jpg}
+\end{center}
+\caption{The first 100 steps of our time series.}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.3]{../Images/DLM2_mu_hist_1000_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.3]{../Images/DLM2_W_hist_1000_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.3]{../Images/DLM2_phi_hist_1000_steps_3000_MCMC.jpg}
+\end{center}
+\label{DLM2:histograms}
+\caption{The histograms for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.3]{../Images/DLM2_mu_acf_1000_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.3]{../Images/DLM2_W_acf_1000_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.3]{../Images/DLM2_phi_acf_1000_steps_3000_MCMC.jpg}
+\end{center}
+\caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
+\end{figure}
+
+The histograms in the figure \ref{DLM2:histograms} look pretty good.  We speculate the histogram for $W$ will look similar inverted gamma density.  To be extra confident we ran our MCMC with 10000 iterations and threw away the first 3000 steps of burn-in.  The mean and variance our empirical $W$ in this case is $0.52428$ and $0.0012712$ respectively.  If we assume that the posterior for $W$ can be approximated by a Inverse-Gamma distribution then we can match moments to get the parameters for $\mathcal{IG}(a,b)$.  In particular, $a = \mu^2/v + 2$ and $b = \mu*(a-1)$ where $\mu$ is the mean and $v$ is the variance.  In this case $a = 218.23$ and $b = 113.9$.  We used the kernel of the density of an inverse gamma with parameters $(a,b)$ to generate a set of points, which we normalized and then plotted along with our histogram to see if we are getting a sensical answer.  As you can see in the figure, it appears that we are getting something reasonable, especially since our posterior for $W$ is centered near $0.5$.  Our inverse gamma distribution is looking very much like a normal distribution at this point.
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.45]{../Images/DLM2_W_Check_1000_MCMC_9000.jpg}
+\end{center}
+\end{figure}
+
+\section{Another Dynamic Linear Model (Part III)}
+
+To remind the reader, our model is
+\[
+\begin{cases}
+y_t = z_t + \nu_t, & \nu_t \sim \mcN(m_\nu, V) \\
+z_t = \mu + \phi (z_{t-1} - \mu) + \omega_t, & \omega_t \sim \mcN(0, W).
+\end{cases}
+\]
+
+We expect the AR component of our model to be stationary, which is the case when $|\phi| < 1$.  We can assume further, from our prior knowledge of volatiltiy modeling, that $\phi$ is positive and most likely close to one.  These assumptions will affect the prior and hence posterior distributions we arrive at for our model.  In particular, we will make the following alterations:
+\begin{itemize}
+\item We assume that the AR process is in a stationary state.  It will be useufl to return $x_t = z_t - \mu$ at times.  Since the stationary distribution of $x_t$ is $\mcN(0, W/(1-\phi^2))$ we change the prior of $z_t$ to $\mcN(\mu, W / (1-\phi^2))$.
+\item Since we want to restrict $\phi$ to the interval $[0,1]$ we take the prior of $\phi$ to be a truncated normal
+\[
+\mcN(m_\phi, C_\phi) \1_{[0,1]}(\phi).
+\]
+\end{itemize}
+
+These modifcations will impact
+\begin{itemize}
+\item The posterior distribution of $\phi$.
+\item The posterior distribution of $z_{0:t}$.  However, this is completely encapsulated by the distribution for $z_{0}$.
+\item The posterior distribution of $W$.
+\end{itemize}
+
+\begin{aside}
+There are a couple ways in which one can find the stationary distribution of $x_t$.  First, since our innovations $\omega_t$ are normal we can find the stable distribution of $z_t$ by examinging the mean and variance which arise when one assumes stability.  When we have innovations which are not normal we can appeal to the Fourier transform.  In particular, we have that
+\[
+\bbE[e^{i s x_t}] = \bbE[e^{i s \phi x_{t-1}}] \; \bbE[e^{i s \omega_t}].
+\]
+We can find the functional form of the density of $x_t$ through examination.
+\end{aside}
+
+\subsection{Sample $\phi$ given everything else}
+
+We need to make a few adjustments to our posterior distribution for $\phi$.  There are some similarities to our work above which we will exploit.  Making the substitution $x_t = z_t - \mu$ our model is
+Recall that $x_t = \phi x_t + \omega_t$.  By Bayes:
+\[
+p(\phi | x_{0:n}, \mu, W) = 
+\underbrace{p(x_{0:n} | \phi, \mu, W)}_{\downarrow}
+\;  p(\phi | \mu, W)
+\]
+\[
+\Big[ \prod_{i=1}^n \underbrace{p(x_t | x_{t-1}, \phi, \mu, W)}_{\downarrow} \Big]
+\; \underbrace{ p(x_0 | \phi, \mu, W)}_{\textmd{new prior!}}
+\]
+\[
+p(x_t | x_{t-1}, \phi, \mu, W) \propto \exp \Big[ \frac{-1}{2W} \Big( x_t -  \phi x_{t-1}] \Big)^2 \Big]
+\]
+Hence the product above becomes
+\[
+\propto \exp \Big[ \frac{-1}{2W} \sum_{i=1}^n ( x_t - \phi x_{t-1} )^2 \Big]
+\]
+Considering the sum and completing the square this is then
+\begin{align*}
+\sum_{i=1}^n (x_i - \phi x_{i-1})^2 
+& = k + \phi^2 \sum_{i=1}^n x_{i-1}^2 - 2 \phi \sum_{i=1}^n x_i x_{i-1} \\
+& \; g_0 = \sum_{i=1}^n x_{i-1}^2, \;\;   
+\rho_1 = \frac{1}{g_0} \sum_{i=1}^n x_i x_{i-1} \\
+& = k + g_0 ( \phi - \rho_1 )^2.
+\end{align*}
+Hence the likelihood is
+\[
+\ell(\phi | e.e.) \propto \exp \Big[ \frac{-g_0}{2W} (\phi - \rho_1)^2 \Big] \times p(x_0 | \phi, W).
+\]
+Previously, we could disregard the prior density for $x_0$ since it did not involve $\phi$.  That is not the case now.  However, we can still use our previous analysis to arrive at a convenient form for our posterior density.  In particular, we have a truncated normal prior $p(\phi) \sim \mcN(m_\phi, C_\phi) \1_{[0,1]}(\phi)$.
+
+Isolating the normal portion of our likelihood and the untruncated portion of the prior we have
+\[
+\exp \Big[ \frac{-g_0}{2W} (\phi - \rho_1)^2 \Big] \mcN(m_\phi, C_\phi).
+\]
+This is identical to the previous case, but instead of describing the posterior density it describes some sort of ``intermediate density'' which is normal with precision $\frac{1}{C_\phi} + \frac{g_0}{W}$, posterior variance
+\[
+\Var(\phi | e.e.) = \frac{C_\phi \; W/g_0}{C_\phi + W/g_0},
+\]
+and mean
+\[
+\bbE(\phi | e.e.) = \frac{W/g_0}{C_\phi + W/g_0} m_\phi + \frac{C_\phi}{C_\phi + W/g_0} \rho_1.
+\]
+Let us call this density
+\[
+f(\phi | e.e) = \mcN \textmd{ with mean and variance given above.}
+\]
+The posterior density for $\phi$ can then be given by
+\begin{align*}
+p(\phi | e.e.) 
+& \propto f(\phi | e.e.) \; p(x_0 | \phi, W) \; \1_{[0,1]} \\
+& \propto f(\phi | e.e.) \; \Big[ \; (1-\phi^2)^{1/2} \exp \Big( \frac{x_0^2}{2 W} \phi^2 \Big) \; \Big] \; \1_{[0,1]}.
+\end{align*}
+
+\subsubsection{How to sample?}
+
+The question is now, ``How do you sample form this posterior distribution?''  The answer is by Metropolis-Hastings or some variant thereof.  A simple proposal distribution is the uniform distribution on $[0,1]$, in which case we have essentially an accept/reject algorithm.
+
+To draw from $p(\phi | e.e.)$ we follow the algorithm
+\begin{itemize}
+\item Draw $\phi^*$ from Unif$(0,1)$.
+\item Calculate the acceptance probability
+\[
+\alpha(\phi^*, \phi_{t-1}) = \min \Big\{ 1,  \frac{p(\phi^*|e.e.)}{p(\phi_{t-1}|e.e.)} \Big\}.
+\]
+\item Set $\phi_{t}$ by
+\[
+\phi_t = 
+\begin{cases}
+\phi^*, & \textmd{ with prob. } \alpha(\phi^*, \phi_{t-1}) \\
+\phi_{t-1}, & \textmd{ with prob. } 1 - \alpha(\phi^*, \phi_{t-1})
+\end{cases}
+\]
+\end{itemize}
+
+I tried this and it turns out to be a rather ineffective way to sample.  It appears to me that the choice of uniform distribution is too diffuse to be useful.  Another option, as suggested by West is to discard the term corresponding to $p(x_0 | \phi, W)$ and then work with a truncated normal where the mean and variance are the same as our mean and variance from the previous section (i.e. the intermediate mean and variance we describe above).  We can do this by simply rejecting a candidate draw whenever it is outside the desired support of our distribution.
+
+\subsection{Sample $W$ given everything else}
+
+Making the substitution $x_t = z_t - \mu$ and following our work from the previous section we see that
+\[
+p(W | x_{0:n}, \phi, \mu) 
+\propto 
+\underbrace{p(x_{0:t} | W, \phi, \mu)}_{\downarrow} \; p(W | \phi, \mu).
+\]
+Following the arrow and examining the likelihood we decompose the density as in the previous section
+\begin{align*}
+\Big[ \prod_{i=1}^n &
+\underbrace{p(x_i | x_{i-1}, W, \phi, \mu)}_{\textmd{same as before}} \Big]
+\; \underbrace{p(x_0 | W, \phi, \mu)}_{\textmd{Includes $W$ now!}}
+\\
+& \propto 
+\frac{1}{W^{n/2}} \exp \Big[ \frac{-1}{2W} \sum_{i=1}^n (x_i - \phi x_{i-1} )^2 \Big] \; \frac{(1-\phi^2)^{1/2}}{W^{1/2}} \exp \Big(\frac{(1-\phi^2)}{2 W} x_0^2 \Big) \\
+& \propto \frac{1}{W^{n/2+1/2}} \exp \Big[ \frac{-1}{2W} \Big( \sum_{i=1}^n (x_i - \phi x_{i-1})^2 + (1-\phi^2) x_0 \Big) \Big].
+\end{align*}
+Hence given a prior distribution $W \sim \textmd{Inv-Ga}(a/2,b/2)$ the posterior is Inv-Ga$(a^*/2, b^*/2)$ with 
+\[
+a^* = a + n + 1
+\]
+and 
+\[
+b^* = b + \sum_{i=1}^n (x_i - \phi x_{i-1})^2 + (1-\phi^2) x_0.
+\]
+
+\subsection{Informal Verifcation}
+
+As in the previous section we want to check that our inference machine is doing the right thing.  We use the same data as in the previous section which can be found in the directory \texttt{DLM2} under the names \texttt{y.data} and \texttt{z.data}.  Again, this is for the y time series with 1000 steps and MCMC with 3000 iterations.  The first 1000 iterations were removed to allow for burn in.  If you compare the summary statistics and the histograms found for this model with the summary statistics and histograms for Model 2, you will see that they are very similar.  I think that you may get the most benefit from using a truncated normal distribution when the parameter $\phi$ is close to unity.  We defer this question, since our main interest is making sure that our code is correct.
+
+\begin{center}
+\begin{tabular}{c | c | c}
+Variable & Marginal Mean & Marginal Variance \\
+\hline
+$\mu$ & 0.374 & 0.0169 \\
+$W$ & 0.522 & 0.00122 \\
+$\phi$ & 0.823 & 0.000398 \\
+\end{tabular}
+\end{center}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.3]{../Images/DLM3_mu_hist_1000_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.3]{../Images/DLM3_W_hist_1000_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.3]{../Images/DLM3_phi_hist_1000_steps_3000_MCMC.jpg}
+\end{center}
+\label{DLM3:histograms}
+\caption{The histograms for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.3]{../Images/DLM3_mu_acf_1000_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.3]{../Images/DLM3_W_acf_1000_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.3]{../Images/DLM3_phi_acf_1000_steps_3000_MCMC.jpg}
+\end{center}
+\caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
+\end{figure}
+
+
+\section{Dynamic Linear Model (Part IV)}
+
+To this point, our model has been
+\[
+\begin{cases}
+y_t = z_t + \nu_t, & \nu_t \sim \mcN(m_\nu, V) \\
+z_t = \mu + \phi (z_{t-1} - \mu) + \omega_t, & \omega_t \sim \mcN(0, W).
+\end{cases}
+\]
+This has been a slighly idealized model.  In reality, we want to study the stochastic volatility model
+\[
+\begin{cases}
+r_t = \sigma_t \; \ep_t, & \ep_t \sim \mcN(0,1) \\
+\sigma_t = \exp(\mu + x_t) \\
+x_t = \phi x_{t-1} + \omega_t.
+\end{cases}
+\]
+If we let $y_t = \frac{1}{2} \log r_t^2$ then we find that
+\[
+\begin{cases}
+y_t = \mu + x_t + \frac{1}{2}\log(\ep_t^2), & \ep_t \sim \mcN(0,1) \\
+x_t = \phi x_{t-1} + \omega_t.
+\end{cases}
+\]
+After performing the change of variables $z_t = \mu + x_t$ this becomes
+\[
+\begin{cases}
+y_t = z_t + \frac{1}{2}\log(\ep_t^2), & \ep_t \sim \mcN(0,1) \\
+z_t = \mu + \phi (z_{t-1} - \mu) + \omega_t.
+\end{cases}
+\]
+This is almost identical to the model we have been studying except that innovation for $y_t$ is now $\log(\chi^2_1)/2$.  It turns out that you can approximate this distribution well using a normal mixture.  This is a clever and useful trick because it shows how you can take a distribution and make a normal approximation.  Normal approximations are useful because we know how to work with things that look Gaussian.  Thus our entire analysis will stay the same except for one small change.  We can approximate $\frac{1}{2}\log(\ep_t^2)$ with $\nu_t$ where
+\[
+\nu_t = \sum_{i=1}^d \mcN(b_i, w_i | q_t = i) \; p(q_t = i).
+\]
+where $q_t$ is a discrete distribution that is independent and identically distributed for all $t$.  Thus to simulate $\nu_t$ we simply draw from $q_t$ and then draw from a normal distribution.  The pmf of $q_t$ and the values for $b_i$ and $w_i$ are found in West's notes.
+
+What changes when incorporating the mixed normal?  First, we can derive a posterior conditional distribution for $q_t$ given our observed data.  Second, our posterior distribution for $z_t$ will change given a draw from $q_t$.  Everything else stays the same.
+
+First, let's calculate the conditional posterior of $q_{1:n}$.  First, $p(q_{1:n}|e.e.)$ can be broken into a product of $p(q_t|y_t,z_t)$ since at each step we draw independently from $\nu_t$.  By Bayes Theorem
+\begin{align*}
+p(q_t = i | y_t, z_t) 
+& \propto p(y_t, z_t | q_t = i) \; p(q_t = i) \\
+& \propto p(y_t | z_t, q_t = i) \; \underbrace{p(z_t | q_t = i)}_{\textmd{no $q_t$!}} \; p(q_t = i) \\
+& \propto \frac{1}{w_i^{1/2}} \exp \Big[ \frac{-1}{2 w_i} \Big( y_t - (z_t + b_i) \Big)^2 \Big] p(q_t = i);
+\end{align*}
+Now we know how to draw from the posterior distribution of $(q_t | e.e.)$.  You calculate the above expression, normalize it, and then draw from it using the \texttt{sample} function in R.
+
+A note: the marginal posterior distribution for $q_t$ tells us which index $i$ is the most likely we have drawn from at time step $i$.  Recall from above, that you generate $z_t$.  Then you pick $i$ based upon the prior distribution for $q$, which are the weights specified by the normal mixture.  This is used to then produce $y_t$.  When we see $y_t$ we use that data to create a distribution that tells us how likely we were to have used index $i$ at step $t$.
+
+For our second change, examining $(z_t | e.e.)$ we see that
+\begin{itemize}
+\item $p(z_t | D_{t-1}, q_t)$ is the same.
+\item $p(y_t | D_{t-1}, q_t)$ changes so that
+\[
+\textmd{mean} = \mu + \phi (m_{t-1} - \mu) + b_{q_t}.
+\]
+\[
+\textmd{Var} = R_t + V_{q_t} =: Q_t.
+\]
+\item $p(z_t | D_t)$ changes so that $(A_t = R_t/Q_t)$
+\[
+\textmd{mean} = \mu + \phi (m_{t-1} - \mu) A_t (y_t - \bbE(y_t | D_{t-1},q_t))
+\]
+\[
+\textmd{Var} = A_t V_{q_t}.
+\]
+\end{itemize}
+The change of variables $z_t = \mu + x_t$ is helpful here because it decouples $\mu$ from any interaction with $q_t$.
+
+\subsection{Informal Verification}
+
+Again, we want to make sure that our model is doing the correct thing.  We try to mimic our setup above, though the specifics will be slightly different.  The table below gives the true values, the prior distribution, and the MCMC seed we used.
+
+\begin{center}
+\begin{tabular}{c | c | c | c}
+Variable & TrueValue & Prior & MCMC Seed \\
+\hline
+$\mu$ & 0.5 & $\mcN(0, 1)$ & 0 \\
+\hline
+$\phi$ & 0.8 & $\mcN(0.5, 0.5)$ & 0.5 \\
+\hline
+$W$ & 0.5 & $\mathcal{IG}(2.0/2, 2.0/2)$ & 0.6 \\
+\hline
+$z_0$ & 0.1 & - & 0.2
+\end{tabular}
+\end{center}
+
+As before the specific data that we have will controlt the estimation of our parameters.  We can use our knowledge of the true values for $\mu, W$, and $\phi$ along with $z$ to get an idea of how the posterior distributions should behave.  From our work above you will notice that only the posterior distribution for $z_t$ given $D_t$ changes.  Our inferences for $\mu$, $\phi$, and $W$ stay the same.  Thus the same analysis as above holds.  Namely the posterior draw of $\mu$ given everything else has mean roughly equal to the the sample mean
+\[
+\frac{1}{n} \sum_{i=1}^n z_i
+\]
+where $z$ is a draw from our MCMC and $i$ indexes time and the posterior distribution for $\phi$ is centered near $\rho_1 = g_1/g_0$ where $g_0 = \sum_{i=1}^n x_{i-1}^2$ and $g_1 = \sum_{i-1}^n x_i x_{i-1}$.  The quantity $x_t = z_t - \mu$.
+
+We created a new set of synthetic data to test this procedure.  It can be found in the directory \texttt{DLM4} under the names \texttt{z.data} and \texttt{y.data}.  The running average after 1000 steps of $z$ is 0.361.  Thus we expect the posterior mean or $\mu$ to be near $0.361$.  Also, for the true value of $z_{1:T}$ we have that $\rho_1 = 0.806$, so we expect the posterior mean of $\phi$ to be near $0.806$.  You can see from our correlogram that the autocorrelation decays much more slowly in this case.  
+
+\begin{center}
+\begin{tabular}{c | c | c}
+Variable & Marginal Mean & Marginal Variance \\
+\hline
+$\mu$ & 0.339 & 0.0116 \\
+$W$ & 0.585 & 0.00498 \\
+$\phi$ & 0.770 & 0.000866 \\
+\end{tabular}
+\end{center}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.2]{../Images/DLM4_Test_TS_100.jpg}
+\end{center}
+\caption{The first 100 steps of our time series.  The black line corresponds to $y$ and the grey lines corresponds to $z$.}
+\end{figure}
+
+%\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.2]{../Images/DLM4_mu_hist_1000_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_W_hist_1000_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_phi_hist_1000_steps_3000_MCMC.jpg}
+\end{center}
+%\label{DLM4:histograms}
+%\caption{The histograms for $\mu$, $W$, and $\phi$ produced from the %first 1000 steps if $y$.  The Gibbs sampler was run for 3000 steps %and the first 1000 steps were discarded.}
+%\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.2]{../Images/DLM4_mu_acf_1000_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_W_acf_1000_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_phi_acf_1000_steps_3000_MCMC.jpg}
+\end{center}
+\caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
+\end{figure}
+
+To add another layer of assuradness we ran our MCMC for 10000 steps to see what happens discarding the first 3000 interations.  You can see that the mean and variance of our distributions are basically the same.  The distributions are slightly smoother.  We also checked how often the most mode of $q_t$ matched the true value of $q_t$.  This occured 469 out of 1000 steps.  Figure (\ref{fig:DLM4:z_stuff}) shows how far off our posterior mean of $z$ is from the true $z$.
+
+\begin{center}
+\begin{tabular}{c | c | c}
+Variable & Marginal Mean & Marginal Variance \\
+\hline
+$\mu$ & 0.338 & 0.0123 \\
+$W$ & 0.595 & 0.00423 \\
+$\phi$ & 0.768 & 0.000838 \\
+\end{tabular}
+\end{center}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.2]{../Images/DLM4_mu_hist_1000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_W_hist_1000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_phi_hist_1000_steps_10000_MCMC.jpg}
+\end{center}
+\label{DLM4:histograms}
+\caption{The histograms for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 10000 steps and the first 3000 steps were discarded.}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.2]{../Images/DLM4_mu_acf_1000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_W_acf_1000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_phi_acf_1000_steps_10000_MCMC.jpg}
+\end{center}
+\caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 10000 steps and the first 3000 steps were discarded.}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.2]{../Images/DLM4_z_first100_1000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_z_diff_1000_steps_10000_MCMC.jpg}
+\end{center}
+\label{fig:DLM4:z_stuff}
+\caption{The first 100 steps of the true $z$ is in blue.  We calculated the posterior mean of $z_i$ along with the posterior standard deviations and plotted the posterior mean $\pm$ posterior standard deviation for the first 100 steps in black and grey.  The second image is the difference between the true value of $z$ and the posterior mean of $z$.}
+\end{figure}
+
+Lastly, to be add yet another layer of confidence to our calculations, we used all 10000 steps of our time series to estimate the parametrs $\mu, W$, and $\phi$.  The sample mean of the true value of $z$ is $0.523$ and $\rho_1 = 0.794$.
+
+\begin{center}
+\begin{tabular}{c | c | c}
+Variable & Marginal Mean & Marginal Variance \\
+\hline
+$\mu$ & 0.518 & 1.31e-3 \\
+$W$ & 0.508 & 3.25e-04 \\
+$\phi$ & 0.795 & 7.05e-05 \\
+\end{tabular}
+\end{center}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.2]{../Images/DLM4_mu_hist_10000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_W_hist_10000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_phi_hist_10000_steps_10000_MCMC.jpg}
+\end{center}
+\label{DLM4:histograms}
+\caption{The histograms for $\mu$, $W$, and $\phi$ produced from 10000 steps if $y$.  The Gibbs sampler was run for 10000 steps and the first 3000 steps were discarded.}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.2]{../Images/DLM4_mu_acf_1000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_W_acf_1000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_phi_acf_1000_steps_10000_MCMC.jpg}
+\end{center}
+\end{figure}
+
+\section{Further Experimentation}
+
+We have tried to informally verify that our programs do what we desire.  However, after experimenting with real data it seems that perhaps things do not work so nicely when we have different parameters for our system.  We have chosen numbers that are more similar to what we get when examining real data.  However, we are unsure that our analysis with real data is correct.  Thus we create synthetic data with the parameters found through experimentation to see if everything is working correctly.
+
+\begin{center}
+\begin{tabular}{c | c | c | c}
+Variable & TrueValue & Prior & MCMC Seed\\
+\hline
+$\mu$ & -3.0 & $\mcN(0, 1)$ & 0 \\
+\hline
+$m_\nu$ & -1.27 & - & - \\
+\hline
+$V$ & 5.4 & - & - \\
+\hline
+$\phi$ & 0.8 & $\mcN(0.5, 0.5)$ & 0.9 \\
+\hline
+$W$ & 0.5 & $\mathcal{IG}(2.0/2, 2.0/2)$ & 0.5 \\
+\hline
+$z_0$ & 0.1 & $\mcN(0,5)$ & 0.2
+\end{tabular}
+\end{center}
+
+We now generate some synthetic data and then estimate the parameters using our inferential methods.
+
+For data 1000 time steps.
+
+\begin{center}
+\begin{tabular}{c | c | c}
+Variable & Marginal Mean & Marginal Variance \\
+\hline
+$\mu$ & -2.99 & 0.184 \\
+$W$ & 0.58 & 0.043 \\
+$\phi$ & 0.78 & 0.043 \\
+\end{tabular}
+\end{center}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.3]{../Images/DLM3_mu_hist_Test2_1000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.3]{../Images/DLM3_W_hist_Test2_1000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.3]{../Images/DLM3_phi_hist_Test2_1000_steps_10000_MCMC.jpg}
+\end{center}
+\label{DLM4:histograms}
+\caption{The histograms for $\mu$, $W$, and $\phi$ produced from  1000 steps if $y$.  The Gibbs sampler was run for 10000 steps and the first 5000 steps were discarded.}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.2]{../Images/DLM3_mu_acf_Test2_1000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM3_W_acf_Test2_1000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM3_phi_acf_Test2_1000_steps_10000_MCMC.jpg}
+\end{center}
+\label{DLM4:histograms}
+\caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from  1000 steps if $y$.}
+\end{figure}
+
+For 10000 Time Steps.  I recreated the synthetic data.
+
+\begin{center}
+\begin{tabular}{c | c | c}
+Variable & Marginal Mean & Marginal Variance \\
+\hline
+$\mu$ & -3.02 & 0.00182 \\
+$W$ & 0.62 & 0.00339 \\
+$\phi$ & 0.774 & 0.000314 \\
+\end{tabular}
+\end{center}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.3]{../Images/DLM3_mu_hist_Test2_10000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.3]{../Images/DLM3_W_hist_Test2_10000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.3]{../Images/DLM3_phi_hist_Test2_10000_steps_10000_MCMC.jpg}
+\end{center}
+\label{DLM4:histograms}
+\caption{The histograms for $\mu$, $W$, and $\phi$ produced from all 10000 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.2]{../Images/DLM3_mu_acf_Test2_10000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM3_W_acf_Test2_10000_steps_10000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM3_phi_acf_Test2_10000_steps_10000_MCMC.jpg}
+\end{center}
+\label{DLM4:histograms}
+\caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from  3000 MCMC.}
+\end{figure}
+
+\begin{comment}
+\section{Comparison between different SV models}
+
+We synthetically generated a time series with $T=100$ for $y_{1:T}$ and $z_{0:T}$.  
+
+\begin{itemize}
+\item The parameters we used are
+\begin{tabular}{c | c | c | c | c}
+$\mu$ & $m_\nu$ & $V$ & $\phi$ & $W$ \\
+\hline
+0.5 & 0.3 & 0.2 & 0.8 & 0.5
+\end{tabular}.
+
+The $z$ data is the grey line the $y$ data is the black line.  We used 10000 samples and only started recording data after the first 3000 samples.
+\begin{figure}[!h]
+\includegraphics[scale=0.75]{../Images/timeseries_compare.jpg}
+\end{figure}
+
+\item For DLM Part II the priors are
+\begin{itemize}
+\item $\phi \sim \mcN(0.5, 0.5)$
+\item $W \sim \textmd{Inv-Gamma}(2/2, 2/2)$
+\item $\mu \sim N(0, 1)$
+\item $z_0 ~ N(m.0, C.0)$
+\end{itemize}
+
+\item For Model 3 everything stays the same except 
+\[
+z_0 \sim N(\mu, W/(1-\phi^2)).
+\]
+\end{itemize}
+
+You can see that using a truncated normal does not do very much for us in terms of the posterior distribution for $\phi$.  However, I think there may be advantages for convergence, but I haven't looked at this.
+
+\begin{figure}[!h]
+\includegraphics[scale=0.45]{../Images/mu_compare.jpg}
+\includegraphics[scale=0.45]{../Images/phi_compare.jpg}
+
+\includegraphics[scale=0.45]{../Images/W_compare.jpg}
+\includegraphics[scale=0.45]{../Images/z_compare.jpg}
+\end{figure}
+
+\end{comment}
+
+\newpage
+\newpage
+\newpage
+\newpage
+\newpage
+\newpage
+\newpage
+
+\section{Estimation with Actual Data}
+
+\begin{comment}
+Using data my Time Series class I calibrated our Part IV model using S\&P data from Jan. 04, 1999 to May 27, 1999.
+
+\begin{figure}[!h]
+%\includegraphics[scale=0.45]{../Images/sp_test.jpg}
+\includegraphics[scale=0.45]{../Images/returns_sp_test.jpg}
+\includegraphics[scale=0.45]{../Images/phi_test.jpg}
+
+\includegraphics[scale=0.45]{../Images/mu_test.jpg}
+\includegraphics[scale=0.45]{../Images/W_test.jpg}
+\end{figure}
+\end{comment}
+
+\begin{center}
+\begin{tabular}{c | c | c}
+Variable & Marginal Mean & Marginal Variance \\
+\hline
+$\mu$ & -8.12 & 0.0096 \\
+$W$ & 0.034 & 1.55e-5 \\
+$\phi$ & 0.958 & 7.29e-5 \\
+\end{tabular}
+\end{center}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.2]{../Images/DLM4_mu_hist_SP500_2480_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_W_hist_SP500_2480_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_phi_hist_SP500_2480_steps_3000_MCMC.jpg}
+\end{center}
+\label{DLM4:histograms}
+\caption{The histograms for $\mu$, $W$, and $\phi$ produced from all 2480 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[scale=0.2]{../Images/DLM4_mu_acf_SP500_2480_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_W_acf_SP500_2480_steps_3000_MCMC.jpg}
+\includegraphics[scale=0.2]{../Images/DLM4_phi_acf_SP500_2480_steps_3000_MCMC.jpg}
+\end{center}
+\label{DLM4:histograms}
+\caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from  3000 MCMC.}
+\end{figure}
+
+\section{GARCH vs. SV}
+
+We want to record what are the potential advantages and disadvantages to GARCH and stochastic volatility respectively.  Lots of research has been done on GARCH and on Stochastic volatility.  GARCH has an associated family of models trying to capture various aspects of financial returns.  Stochastic volatility also provides for a very flexible model on which to base more complicated dynamics.  An excellent starting point for both GARCH and SV is the Handbook of Financial Time Series.  I need to take a closer look at the literature.  Evidently, Hansen and Lunde (2004) find that it is hard to beat GARCH yet Koopman (2005) finds that SV gives superior forecasts.
+
+As noted in Practical Issues in the Analysis of Univariate GARCH models (in the Handbook), there are four main stylized facts about asset returns one hopes to reproduce (the author cited Bollerslev):
+\begin{enumerate}
+\item volatility clustering
+\item fat tails
+\item volatility mean reversion
+\item asymmetry of volatility
+\end{enumerate}
+To this I would add
+\begin{enumerate}
+\item returns are white noise
+\item squared returns have slowly decaying autocorrelation
+\item the autocorrelations of $|r_t|^k$ peak when $k=1$.  This is called the Taylor effect and the paper Introduction to Univariate GARCH cited Granger and Ding (1995) for further references.
+\end{enumerate}
+
+\subsection{GARCH Pros}
+\begin{enumerate}
+\item Easy to evaluate likelihood.  This is mentioned several times by Shephard.  It facilitates numerically solving for the maximum likelihood.  Quasi-likelihood method works for non-normal disturbances (Practical Issues...).  In particular, ``GARCH immediately delivers the likelihood function as the product of one-step-ahead predictive densities'' (from Origins and Overview).
+\item Captures features of financial returns.
+\end{enumerate}
+
+\subsection{GARCH Cons}
+\begin{enumerate}
+\item There is no simple aggregation principle that links parameters at different frequencies (from Practical Issues..., cites Drost and Nijman, 1993).  In other words, GARCH models fit the frequency at hand.  Though there is some evidence that you can scale daily GARCH up to weekly/monthly.
+\item GARCH log likelihood is not always well behaved.  Complex models are problematic, the constraints (for positiveness and stationarity) are not necessarily satisfied (though it seems like you can make this happen), poor starting points can lead you astray.  In many empirical applications the coefficient on $r_{t-1}^2$ is close to zero whereas the coefficient on $\sigma_{t-1}^2$ is close to one.  This may lead to ill-behaved estimates.  (From Practical Issues p. 125).
+\item Forecasts often have to be simulated (Practical Issues).
+\item GARCH(1,1) does not seem to posses Taylor effect (Introductino to Univariate GARCH)
+\item There is a tradeoff between matching heavity tails and getting autocorrelation right?  (Introduction to Univariate GARCH)
+\item Unless $T$ time steps is large liklihood is flat (Shephard, Times Series in...)
+\end{enumerate}
+
+\subsection{SV Pros}
+\begin{enumerate}
+\item Fits naturally within continuous time setting.  In fact, it is the Euler approximation to continuous time stochastic volatility models that are in use.
+\item Shephard in Origins and Overview mentions that stochastic volatility fits naturally with realized measures.
+\item Multivariate stochastic volatility - you can incorporate factor models quite easily.  One factor could be RV.
+\item Can reproduce skews and smiles in options pricing (Origins and Overview)
+\item Shephard says easier to find understand manipulate
+\end{enumerate}
+
+\subsection{SV Cons}
+\begin{enumerate}
+\item Generally does not have closed form likelihood.
+\item Harder to handle analytically and statistically (Shephard, Time Series Models in...)
+\item ``Inlier problem.'' When transforming $y_t = 0.5 \log(r^2_t)$ you can get $r^2_t = 0$, which is a singularity.  To address this you can add a small regularizing constant so that $y_t = 0.5 \log(r_t^2 + c)$.
+\item Computationally more expensive
+\end{enumerate}
+
+\begin{tabular}{c | c}
+a & b \\
+\hline
+c & d \\
+\end{tabular}
+\begin{tabular}{c | c}
+a & b \\
+\hline
+c & d \\
+\end{tabular}
+
+\end{document}
