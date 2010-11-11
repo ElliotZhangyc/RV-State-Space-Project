@@ -1,18 +1,6 @@
 # We are considering a dynamics linear model governed by
 #  y_t = x_t + \nu_t, \nu_t \sim N(m.nu ,V)
 #  z_t = \mu + \phi (z_{t-1}-\mu) + \omega_t, \omega_t \sim N(0,W).
-
-# The length of our observed time series, (y_t).
-T = 1000;
-
-# The true values of our parameters.
-true = data.frame(
-  mu = -3.80,
-  m.nu = -0.62,
-  v.nu = 1.16,
-  phi = 0.8,
-  W = 0.5,
-);
   
 # Our data structures, y and x.  For plotting purposes we keep track
 # of x.  y is indexed from 1 to n.  x is indexed from 0 to n.
@@ -24,7 +12,7 @@ z.true = rep(0,T+1);
 # 0.1 puts up pretty far away so it takes a while to get back to 0.5.
 # We actually know here that z_0 should come from N(mu, W/(1-phi^2)),
 # but we refrain from drawing from that distribution.
-z.true[1] = 0.1;
+z.true[1] = true$z.0;
 
 # Now generate our data.
 for (i in 1:T){
