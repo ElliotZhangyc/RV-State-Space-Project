@@ -4,21 +4,21 @@
 ## FOR SYNTHETIC DATA ##
 
 # The length of our observed time series, (y_t).
-T = 1000;
+T = 10000;
 
 # Let's remember we are using synthetic data or not.
 is.synthetic = TRUE;
 
 # trial.id
-trial.id = 1;
+trial.id = 2;
 
 # The true values of our parameters.
 # This is used when creating synthetic data.
 true = data.frame(
-  mu = -3.80,
   m.nu = -0.62,
   v.nu = 1.16,
-  phi = 0.8,
+  mu = -3.80,
+  phi = 0.9,
   W = 0.5,
   z.0 = -3
 );
@@ -63,4 +63,15 @@ mcmc = data.frame(
   samples = 3000,
   burn.in = 1000,
   ave.time = 0 # ave.time will be set after we run the MCMC.
+);
+
+## SYNTHETIC DATA STATISTICS ##
+
+# We will set these values when we run Check.R.
+snyth.stats = data.frame(
+  z.sm = NA,
+  x.sv = NA,
+  x.sacv = NA,
+  x.sacr = NA,
+  W.marg.m = NA
 );

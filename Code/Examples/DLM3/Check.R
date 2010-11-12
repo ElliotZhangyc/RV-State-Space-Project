@@ -21,6 +21,20 @@ for(i in 1:(T+1)){
   z.post.sd[i] = sd(z.gibbs[i,range]);
 }
 
+## IN THE CASE WE HAVE SYNTHETIC DATA ##
+
+# Check notes to see where these values came from.
+if(is.synthetic){
+  synth.stats$z.sm = mean(z.data);
+  x.data = z.data[1:T] - true$mu;
+  synth.stats$x.sv = var(x.data[1:(T-1)]);
+  synth.stats$x.sacv = mean(x.data[1:(T-1)]*x.data[2:T]);
+  synth.stats$x.sacr = synth.stats$x.sacv / synth.stats$x.sv;
+  temp = prior$b.W + sum((x.data[2:T]-true$phi*x.data[1:(T-1)]))^2
+         + (1-true$phi^2)*x.data[1];
+  synth.stats$W.marg.m = (prior$a.W + T + 1)/temp;
+}
+
 ## SUMMARY PLOTS ##
 
 ## Uncomment this to output to postscript.  Remeber to uncomment dev.off().
@@ -69,25 +83,36 @@ dev.off()
 
 ## TO MAKE VARIOUS TABLES ##
 
-## ASIDE: I could also use write.table and then use a Bash or Perl
-## script to generate my latex table.
+# Note: The wierd seperator "\\&" and end of line "\\\\\\\\" are used
+# so that when we run our bash script MakeTex.bash to compile the
+# table everything looks right.
 
 # For the true values.
-latex.table(round(true,3), paste("Tbl-true-", trial.id, sep=""),
-            table.env=FALSE);
+write.table(true,
+            paste("Tbl-true-", trial.id, ".txt", sep=""), quote=FALSE,
+            sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
 
 # For the seed values.
-latex.table(round(seed,3), paste("Tbl-seed-", trial.id, sep=""),
-            table.env=FALSE);
+write.table(seed,
+            paste("Tbl-seed-", trial.id, ".txt", sep=""), quote=FALSE,
+            sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
 
-# For the MCMC information.
-latex.table(round(mcmc,3), paste("Tbl-mcmc-", trial.id, sep=""),
-            table.env=FALSE);
+# For the MCMC values.
+write.table(round(mcmc,3),
+            paste("Tbl-mcmc-", trial.id, ".txt", sep=""), quote=FALSE,
+            sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
 
 # For the prior parameters.
-latex.table(round(prior,3), paste("Tbl-prior-", trial.id, sep=""),
-            table.env=FALSE);
+write.table(prior,
+            paste("Tbl-prior-", trial.id, ".txt", sep=""), quote=FALSE,
+            sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
 
-# For the posterior statisics.
-latex.table(round(post,3), paste("Tbl-post-", trial.id, sep=""),
-            table.env=FALSE);
+# For the posterior statistics.
+write.table(round(post,4),
+            paste("Tbl-post-", trial.id, ".txt", sep=""), quote=FALSE,
+            sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
+
+# For the synthetic statistcs.
+write.table(round(synth.stats,4),
+            paste("Tbl-synth-", trial.id, ".txt", sep=""), quote=FALSE,
+            sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
