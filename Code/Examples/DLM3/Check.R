@@ -13,6 +13,10 @@ post = data.frame(
   v.W = var(W.gibbs[range])
 )
 
+# Record the length of the data
+true$size = T;
+run.info$time.stamp = date();
+
 ## FOR Z ##
 z.post.mean = 1:(T+1);
 z.post.sd = 1:(T+1);
@@ -24,21 +28,22 @@ for(i in 1:(T+1)){
 ## IN THE CASE WE HAVE SYNTHETIC DATA ##
 
 # Check notes to see where these values came from.
-if(is.synthetic){
+if(run.info$is.synthetic){
   synth.stats$z.sm = mean(z.data);
   x.data = z.data[1:T] - true$mu;
   synth.stats$x.sv = var(x.data[1:(T-1)]);
   synth.stats$x.sacv = mean(x.data[1:(T-1)]*x.data[2:T]);
   synth.stats$x.sacr = synth.stats$x.sacv / synth.stats$x.sv;
-  temp = prior$b.W + sum((x.data[2:T]-true$phi*x.data[1:(T-1)]))^2
+  temp = prior$b.W + sum((x.data[2:T]-true$phi*x.data[1:(T-1)])^2)
          + (1-true$phi^2)*x.data[1];
-  synth.stats$W.marg.m = (prior$a.W + T + 1)/temp;
+  # The quanity b/(a-1) is the mean of an Inverse Gamma.
+  synth.stats$W.marg.m = temp/(prior$a.W + T);
 }
 
 ## SUMMARY PLOTS ##
 
 ## Uncomment this to output to postscript.  Remeber to uncomment dev.off().
-postscript(file=paste("plots_", trial.id, ".eps", sep=""), width=6,
+postscript(file=paste("plots_", run.info$id, ".eps", sep=""), width=6,
            height=6, horizontal = FALSE, onefile = FALSE, paper = "special");
 
 ## SETUP THE PLOT PARAMETERS ##
@@ -60,7 +65,8 @@ plot(y.range, y.data[y.range], type="l", col="black",
 lines(0:plot.length, z.post.mean[z.range], col="blue");
 lines(0:plot.length, z.post.mean[z.range]+z.post.sd[z.range], col="grey");
 lines(0:plot.length, z.post.mean[z.range]-z.post.sd[z.range], col="grey");
-if (is.synthetic) lines(0:plot.length, z.data[z.range], col="red", lty=2);
+if (run.info$is.synthetic)
+  lines(0:plot.length, z.data[z.range], col="red", lty=2);
 
 ## FOR HISTOGRAMS ##
 hist(mu.gibbs[range], breaks=40, prob=TRUE,
@@ -87,32 +93,37 @@ dev.off()
 # so that when we run our bash script MakeTex.bash to compile the
 # table everything looks right.
 
+# For the run info.
+write.table(run.info,
+            paste("Tbl-run-", run.info$id, ".txt", sep=""), quote=FALSE,
+            sep=" ", row.names=FALSE, col.names=FALSE);
+
 # For the true values.
 write.table(true,
-            paste("Tbl-true-", trial.id, ".txt", sep=""), quote=FALSE,
+            paste("Tbl-true-", run.info$id, ".txt", sep=""), quote=FALSE,
             sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
 
 # For the seed values.
 write.table(seed,
-            paste("Tbl-seed-", trial.id, ".txt", sep=""), quote=FALSE,
+            paste("Tbl-seed-", run.info$id, ".txt", sep=""), quote=FALSE,
             sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
 
 # For the MCMC values.
 write.table(round(mcmc,3),
-            paste("Tbl-mcmc-", trial.id, ".txt", sep=""), quote=FALSE,
+            paste("Tbl-mcmc-", run.info$id, ".txt", sep=""), quote=FALSE,
             sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
 
 # For the prior parameters.
 write.table(prior,
-            paste("Tbl-prior-", trial.id, ".txt", sep=""), quote=FALSE,
+            paste("Tbl-prior-", run.info$id, ".txt", sep=""), quote=FALSE,
             sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
 
 # For the posterior statistics.
 write.table(round(post,4),
-            paste("Tbl-post-", trial.id, ".txt", sep=""), quote=FALSE,
+            paste("Tbl-post-", run.info$id, ".txt", sep=""), quote=FALSE,
             sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
 
 # For the synthetic statistcs.
 write.table(round(synth.stats,4),
-            paste("Tbl-synth-", trial.id, ".txt", sep=""), quote=FALSE,
+            paste("Tbl-synth-", run.info$id, ".txt", sep=""), quote=FALSE,
             sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");

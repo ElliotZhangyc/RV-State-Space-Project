@@ -4,22 +4,24 @@
 ## FOR SYNTHETIC DATA ##
 
 # The length of our observed time series, (y_t).
-T = 10000;
+T = 1000;
 
 # Let's remember we are using synthetic data or not.
-is.synthetic = TRUE;
-
-# trial.id
-trial.id = 2;
+run.info = data.frame(
+  id = 7,
+  is.synthetic = TRUE,
+  time.stamp = NA
+)
 
 # The true values of our parameters.
 # This is used when creating synthetic data.
 true = data.frame(
   m.nu = -0.62,
-  v.nu = 1.16,
+  v.nu = 4.16,
+  size = T,
   mu = -3.80,
-  phi = 0.9,
-  W = 0.5,
+  phi = 0.2,
+  W = 0.2,
   z.0 = -3
 );
 
@@ -60,15 +62,15 @@ seed = data.frame(
 # Information for our MCMC.
 mcmc = data.frame(
   model = 3,
-  samples = 3000,
-  burn.in = 1000,
+  samples = 9000,
+  burn.in = 3000,
   ave.time = 0 # ave.time will be set after we run the MCMC.
 );
 
 ## SYNTHETIC DATA STATISTICS ##
 
 # We will set these values when we run Check.R.
-snyth.stats = data.frame(
+synth.stats = data.frame(
   z.sm = NA,
   x.sv = NA,
   x.sacv = NA,

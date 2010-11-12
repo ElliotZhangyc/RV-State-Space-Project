@@ -10,6 +10,11 @@ do
 # The output file.
 OutFile="trial_$ID.tex"
 
+# Add the identifying information.
+head "Tbl-run-$ID.txt" > $OutFile
+# Add a new line.
+echo -e "\n" >> $OutFile
+
 # Get the prior data.
 prior=$(head "Tbl-prior-$ID.txt")
 # Get the posterior data.
@@ -31,7 +36,7 @@ sed -e "s/%prior/$prior/" \
     -e "s/%mcmc/$mcmc/" \
     -e "s/%true/$true/" \
     -e "s/%synth/$synth/" \
-    > $OutFile
+    >> $OutFile
 
 # Write the rest of the file
 echo -e "\n" >> $OutFile
