@@ -1,81 +1,146 @@
-# We want to check that our inferential machine is working.  I assume
-# that we have already ran <GenerateData.R> and that T was set to
-# 10000.  We now look at our inferences for various portions of the
-# time series, such as 1:100, 1:1000, and 1:10000.
-
-# Select a subset of the data.
-#T = 100;
-#y.data = y.true[1:T];
-#z.data = z.true[1:(T+1)];
-#q.data = q.true[1:T];
-
-# Estimate the parametrs.
-# source("CalibrateData.R");
-
-# Output.  Comment out what you do not want.
-
-## TO VIEW TIME SERIES ##
-#jpeg("DLM4_Test_TS_100.jpg", width=1024, height=512);
-#plot(1:T, y.data, type="l");
-#lines(0:T, z.data, col="grey");
-#dev.off();
+# We want to check that our inferential machine is working.  
 
 ## FOR SUMMARY STATISTICS ##
-# QoI = quantity of interest.
-range = 1000:num.samples;
-QoI = mu[range];
-m.QoI = mean(QoI);
-var.QoI = var(QoI);
-print(c(m.QoI, var.QoI));
 
-## FOR HISTOGRAMS ##
-jpeg("DLM4_mu_hist_SP500_2480_steps_3000_MCMC.jpg", width=512, height=512);
-hist(mu[range], breaks=40, prob=TRUE);
-dev.off();
+# Summary statistics for mu, phi, and W.
+range = mcmc$burn.in:mcmc$samples;
+post = data.frame(
+  m.mu = mean(mu.gibbs[range]),
+  v.mu = var(mu.gibbs[range]),
+  m.phi = mean(phi.gibbs[range]),
+  v.phi = var(phi.gibbs[range]),
+  m.W = mean(W.gibbs[range]),
+  v.W = var(W.gibbs[range])
+)
 
-## FOR AUTOCORRELATIONS ##
-the.acf = acf(mu);
-jpeg("DLM4_mu_acf_SP500_2480_steps_3000_MCMC.jpg", width=512, height=512);
-plot(the.acf, type="l");
-dev.off();
+# Record the length of the data
+true$size = T;
+run.info$time.stamp = date();
 
 ## FOR Z ##
-#z.post.mean = 1:(T+1);
-#z.post.sd = 1:(T+1);
-#for(i in 1:(T+1)){
-#  z.post.mean[i] = mean(z[range,i]);
-#  z.post.sd[i] = sd(z[range,i]);
-#}
+z.post.mean = 1:(T+1);
+z.post.sd = 1:(T+1);
+for(i in 1:(T+1)){
+  z.post.mean[i] = mean(z.gibbs[i,range]);
+  z.post.sd[i] = sd(z.gibbs[i,range]);
+}
 
-# Plot y.data along with its estimate z.post.mean.
-#####jpeg("DLM4_z_first100_1000_steps_10000_MCMC.jpg", width=1024, height=512)
-#plot(1:T, y.data[1:T]+0.65, type="l", col="grey");
-#lines(0:T, z.post.mean);
-#lines(0:T, z.post.mean+z.post.sd, col="grey");
-#lines(0:T, z.post.mean-z.post.sd, col="grey");
-#####dev.off();
+## FOR 2D HIST ##
 
-# Plot z.data along with its estimate z.post.mean.
-#jpeg("DLM4_z_first100_1000_steps_10000_MCMC.jpg", width=1024, height=512)
-#plot(0:T, z.data, type="l", col="blue");
-#lines(0:T, z.post.mean);
-#lines(0:T, z.post.mean+z.post.sd, col="grey");
-#lines(0:T, z.post.mean-z.post.sd, col="grey");
-#dev.off();
+# We want a two dimensional histogram to show us the joint density
+# between phi and W.  To do this, we manually create a two dimensional
+# matrix that represents our two dimensional histogram.
 
-# Plot the difference between the actual z and the posterior mean of z.
-#jpeg("DLM4_z_diff_1000_steps_10000_MCMC.jpg", width=1024, height=512);
-#plot(0:T, z.data-z.post.mean, type="h");
-#barplot(z.data-z.post.mean);
-#dev.off();
+# How we define the bins in phi and W.
+phi.bins = seq(0.1, 0.4, 1/40);
+W.bins = seq(0.1, 0.3, 1/40);
+# Now fill the matrix.
+the.hist.2d = hist.2d(phi.gibbs[range], W.gibbs[range], phi.bins, W.bins);
 
-## FOR q ##
-#num.correct = 0;
-#for(i in 1:T){
-#  hist.q = hist(q[,i], breaks=c(0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5),
-#                plot=FALSE);
-#  themax = max(hist.q$counts);
-#  idx = hist.q$mids%*%(themax==hist.q$counts);
-#  num.correct = num.correct + 1*(q.data[i]==idx);
-#}
-#print(num.correct);
+## IN THE CASE WE HAVE SYNTHETIC DATA ##
+
+# Check notes to see where these values came from.
+if(run.info$is.synthetic){
+  synth.stats$z.sm = mean(z.data);
+  x.data = z.data[1:T] - true$mu;
+  synth.stats$x.sv = var(x.data[1:(T-1)]);
+  synth.stats$x.sacv = mean(x.data[1:(T-1)]*x.data[2:T]);
+  synth.stats$x.sacr = synth.stats$x.sacv / synth.stats$x.sv;
+  temp = prior$b.W + sum((x.data[2:T]-true$phi*x.data[1:(T-1)])^2)
+         + (1-true$phi^2)*x.data[1];
+  # The quanity b/(a-1) is the mean of an Inverse Gamma.
+  synth.stats$W.marg.m = temp/(prior$a.W + T);
+}
+
+## SUMMARY PLOTS ##
+
+## Uncomment this to output to postscript.  Remeber to uncomment dev.off().
+postscript(file=paste("plots_", run.info$id, ".eps", sep=""), width=6,
+           height=6, horizontal = FALSE, onefile = FALSE, paper = "special");
+
+## SETUP THE PLOT PARAMETERS ##
+
+# The margins.
+par(mai=c(0.40, 0.25, 0.4, 0.25));
+# The layout of the plot.
+layoutmat = matrix(c(1,1,1,1,2,3,4,5,6,7,8,9), 3, 4, byrow=TRUE);
+layout(layoutmat);
+
+## CREATE PLOTS ##
+
+## FOR Y AND Z ##
+plot.length = min(T, 100);
+y.range = 1:plot.length;
+z.range = 1:(plot.length+1);
+plot(y.range, y.data[y.range], type="l", col="black",
+     main="The time series and estimates.");
+lines(0:plot.length, z.post.mean[z.range], col="blue");
+lines(0:plot.length, z.post.mean[z.range]+z.post.sd[z.range], col="grey");
+lines(0:plot.length, z.post.mean[z.range]-z.post.sd[z.range], col="grey");
+if (run.info$is.synthetic)
+  lines(0:plot.length, z.data[z.range], col="red", lty=2);
+
+## FOR HISTOGRAMS ##
+hist(mu.gibbs[range], breaks=40, prob=TRUE,
+     main=expression(paste("Histogram of ",mu,"|y")));
+hist(W.gibbs[range], breaks=40, prob=TRUE,
+     main=expression(paste("Histogram of ",W,"|y")));
+hist(phi.gibbs[range], breaks=40, prob=TRUE,
+     main=expression(paste("Histogram of ",phi,"|y")));
+# Our 2d histogram.  We create this manually.
+image(phi.bins, W.bins, the.hist.2d, col=rev(grey(0:10/10)),
+      main=expression(paste("Histogram of (", phi, ",", W, ")|y", sep="")));
+
+## FOR AUTOCORRELATIONS ##
+acf(mu.gibbs, plot=TRUE,
+    main=expression(paste("Autocorrelation of ",mu,"|y")));
+acf(W.gibbs, plot=TRUE,
+    main=expression(paste("Autocorrelation of ",W,"|y")));
+acf(phi.gibbs, plot=TRUE,
+    main=expression(paste("Autocorrelation of ",phi,"|y")));
+ccf(phi.gibbs, W.gibbs, plot=TRUE,
+    main=expression(paste("Cross-corr of ", phi, ",", W, sep="")));
+
+## DEVICE ON/OFF ##
+dev.off()
+
+## TO MAKE VARIOUS TABLES ##
+
+# Note: The wierd seperator "\\&" and end of line "\\\\\\\\" are used
+# so that when we run our bash script MakeTex.bash to compile the
+# table everything looks right.
+
+# For the run info.
+write.table(run.info,
+            paste("Tbl-run-", run.info$id, ".txt", sep=""), quote=FALSE,
+            sep=" ", row.names=FALSE, col.names=FALSE);
+
+# For the true values.
+write.table(true,
+            paste("Tbl-true-", run.info$id, ".txt", sep=""), quote=FALSE,
+            sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
+
+# For the seed values.
+write.table(seed,
+            paste("Tbl-seed-", run.info$id, ".txt", sep=""), quote=FALSE,
+            sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
+
+# For the MCMC values.
+write.table(round(mcmc,3),
+            paste("Tbl-mcmc-", run.info$id, ".txt", sep=""), quote=FALSE,
+            sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
+
+# For the prior parameters.
+write.table(prior,
+            paste("Tbl-prior-", run.info$id, ".txt", sep=""), quote=FALSE,
+            sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
+
+# For the posterior statistics.
+write.table(round(post,4),
+            paste("Tbl-post-", run.info$id, ".txt", sep=""), quote=FALSE,
+            sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
+
+# For the synthetic statistcs.
+write.table(round(synth.stats,4),
+            paste("Tbl-synth-", run.info$id, ".txt", sep=""), quote=FALSE,
+            sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");

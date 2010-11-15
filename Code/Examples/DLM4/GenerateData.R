@@ -1,36 +1,23 @@
 # We are considering a dynamics linear model governed by
-#  y_t = x_t + \nu_t, \nu_t \sim Normal Mixture !!!
+#  y_t = z_t + \nu_t, \nu_t \sim Normal Mixture !!!
 #  z_t = \mu + \phi (z_{t-1}-\mu) + \omega_t, \omega_t \sim N(0,W).
 
-# The length of our observed time series, (y_t).
-T = 10000;
-
-# The values of our parameters.
-mu.true = 0.5;
-phi.true = 0.8;
-W.true = 0.5;
-
-# Our data structures, y and x.  For plotting purposes we keep track
-# of x.  y is indexed from 1 to n.  x is indexed from 0 to n.
+# Our data structures for y, z, and q.  For plotting purposes we keep track
+# of z.  y is indexed from 1 to T.  z is indexed from ``0 to T''.
 y.true = rep(0,T);
 z.true = rep(0,T+1);
 q.true = rep(0,T);
 
-# Set x_0 to something.  Since x_0 mean reverts to zero we chose
-# something that is not too far away from 0.
-z.true[1] = 0.1;
-
-# For our Normal Mixture
-q.prior = c(0.0073, 0.1056, 0.2575, 0.34, 0.2456, 0.0440);
-b.mix = c(-5.7002, -2.6216, -1.1793, -0.3255, 0.2624, 0.7537);
-v.mix = c(1.4490, 0.6534, 0.3157, 0.16, 0.0851, 0.0418);
+# Set z_0 to something.  Since z_0 mean reverts to zero we chose
+# something that is not too far away from the mean mu.
+z.true[1] = true$z.0;
 
 # Now generate our data.
 for (i in 1:T){
-  z.true[i+1] = mu.true + phi.true*(z.true[i]-mu.true) +
-                rnorm(1, 0, sqrt(W.true));
-  q.true[i] = sample(1:6, 1, replace=TRUE, prob=q.prior);
-  y.true[i] = z.true[i+1] + rnorm(1, b.mix[q.true[i]], sqrt(v.mix[q.true[i]]));
+  z.true[i+1] = true$mu + true$phi*(z.true[i]-true$mu) +
+                rnorm(1, 0, sqrt(true$W));
+  q.true[i] = sample(1:6, 1, replace=TRUE, prob=nmix$q);
+  y.true[i] = z.true[i+1] + rnorm(1, nmix$b[q.true[i]], sqrt(nmix$v[q.true[i]]));
 }
 
 # For purposes of calibrating.  Our CalibrateData.R script assumes
