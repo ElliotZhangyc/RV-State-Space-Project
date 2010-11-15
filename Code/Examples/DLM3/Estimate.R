@@ -57,8 +57,11 @@ for(i in 2:(T+1)){
 ## TEMPORARY CALCULATIONS ##
 
 # Useful for check Gibbs sampler.
-#for(i in 1:num.samples){
-#  z[,i] = z.data;
+#mu.gibbs = rep(true$mu, mcmc$samples);
+#phi.gibbs = rep(true$phi, mcmc$samples);
+#W.gibbs = rep(true$W, mcmc$samples);
+#for(i in 1:mcmc$samples){
+#  z.gibbs[,i] = z.data;
 #}
 
 ## CONDITIONAL DENSITIES ##
@@ -118,7 +121,7 @@ phi.cond.post <- function(x.data, W, m.phi, C.phi, phi.prev){
   m.inter = m.phi * (W/g.0) / Q + (g.1/g.0) * C.phi / Q;
   C.inter = C.phi * (W/g.0) / Q;
   # Now we do our accept reject algorithm
-  phi.cand = rnorm(1, m.inter, sqrt(C.inter));
+  # phi.cand = rnorm(1, m.inter, sqrt(C.inter));
   #numer = dnorm(phi.cand, m.inter, sqrt(C.inter)) *
   #        dnorm(x.data[1], 0, sqrt(W/(1-phi.cand^2)));
   #denom = dnorm(phi.prev, m.inter, sqrt(C.inter)) *
@@ -127,9 +130,10 @@ phi.cond.post <- function(x.data, W, m.phi, C.phi, phi.prev){
   #phi.draw = phi.prev;
   #if (phi.cand<0 || phi.cand>1) ratio = 0;
   #if (runif(1,0,1) < ratio) phi.draw = phi.cand;
-  phi.draw = phi.cand;
-  if (phi.cand<0 || phi.cand>1) phi.draw = phi.prev;
-  phi.draw;
+  #phi.draw = phi.cand;
+  #if (phi.cand<0 || phi.cand>1) phi.draw = phi.prev;
+  phi.draw = rtnorm(1, m.inter, sqrt(C.inter), 0, 1);
+  #phi.draw;
 }
 
 # To draw from mu | everything else.
@@ -186,11 +190,11 @@ for(i in 2:mcmc$samples){
     the.time[idx] = proc.time()[[1]];
     delta.time[idx-1] = the.time[idx] - the.time[idx-1];
     ave.time = mean(delta.time[1:(idx-1)]);
-    seconds.to.complete = (mcmc$samples - i)/6000*ave.time;
+    min.to.complete = (mcmc$samples - i)/6000*ave.time;
     print(paste("Iter:", i, "|",
                 round(delta.time[idx-1], 3), "s last 100", "|",
                 round(ave.time, 3), "s per 100", "|",
-                round(seconds.to.complete, 3), "min to done"));
+                round(min.to.complete, 3), "min to done"));
   }
 }
 
