@@ -17,6 +17,9 @@
 # W/(1-\phi^2)).  This is identical to assuming that x_t = z_t -
 # \mu has distribution N(0, W/(1-\phi^2))
 
+# source("mvtnorm");
+# source("msm"); # for rtnorm
+
 ## ASSUMPTIONS ##
 
 # We assume our data is stored in y.data

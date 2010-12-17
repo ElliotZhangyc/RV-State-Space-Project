@@ -173,13 +173,13 @@ for(i in 2:mcmc$samples){
   # A change of variables is useful.
   x.data = z.gibbs[,i-1] - mu.gibbs[i-1];
   # Sample phi | e.e.
-  phi.gibbs[i]=phi.cond.post(x.data, W.gibbs[i-1],
-             prior$m.phi, prior$v.phi, phi.gibbs[i-1]);
+#  phi.gibbs[i]=phi.cond.post(x.data, W.gibbs[i-1],
+#             prior$m.phi, prior$v.phi, phi.gibbs[i-1]);
   # Sample W | e.e.
-  W.gibbs[i] = W.cond.post(x.data, phi.gibbs[i], prior$a.W, prior$b.W);
+#  W.gibbs[i] = W.cond.post(x.data, phi.gibbs[i], prior$a.W, prior$b.W);
   # Sample mu | e.e.
-  mu.gibbs[i] = mu.cond.post(z.gibbs[,i-1], phi.gibbs[i],
-            W.gibbs[i], prior$m.mu, prior$v.mu);
+#  mu.gibbs[i] = mu.cond.post(z.gibbs[,i-1], phi.gibbs[i],
+#            W.gibbs[i], prior$m.mu, prior$v.mu);
   # Sample z | e.e.
   z.gibbs[,i] = z.cond.post(y.data, mu.gibbs[i], nu$m, nu$v,
            phi.gibbs[i], W.gibbs[i], mu.gibbs[i],

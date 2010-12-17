@@ -157,7 +157,7 @@ When we run \texttt{GenerateGARCH.R} and \texttt{MaxLL.R} repeatedly we find vas
 \begin{comment}
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.5]{../Images/condvar.jpg}
+%\includegraphics[scale=0.5]{../Images/condvar.jpg}
 \end{center}
 \caption{Two different conditional variance time series.  The red series produces a maximum (of the negative log likelihood) of 70.  The blue series prodcuces a maximum of -17.}
 \label{fig:differentcondvar}
@@ -165,17 +165,17 @@ When we run \texttt{GenerateGARCH.R} and \texttt{MaxLL.R} repeatedly we find vas
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.25]{../Images/garch01.jpg}
-\includegraphics[scale=0.25]{../Images/post01.jpg}
+%\includegraphics[scale=0.25]{../Images/garch01.jpg}
+%\includegraphics[scale=0.25]{../Images/post01.jpg}
 
-\includegraphics[scale=0.25]{../Images/garch02.jpg}
-\includegraphics[scale=0.25]{../Images/post02.jpg}
+%\includegraphics[scale=0.25]{../Images/garch02.jpg}
+%\includegraphics[scale=0.25]{../Images/post02.jpg}
 
-\includegraphics[scale=0.25]{../Images/garch03.jpg}
-\includegraphics[scale=0.25]{../Images/post03.jpg}
+%\includegraphics[scale=0.25]{../Images/garch03.jpg}
+%\includegraphics[scale=0.25]{../Images/post03.jpg}
 
-\includegraphics[scale=0.25]{../Images/garch04.jpg}
-\includegraphics[scale=0.25]{../Images/post04.jpg}
+%\includegraphics[scale=0.25]{../Images/garch04.jpg}
+%\includegraphics[scale=0.25]{../Images/post04.jpg}
 
 \end{center}
 \caption{Each pair of images is a time series and a posterior distribution for $\theta = (\alpha, \beta, \omega^*)$ where we have fixed $\omega^*$ to be the value of $\omega$ at the posterior mode.  Thus these are joint posterior distributions in $(\alpha, \beta)$ conditioned on $\omega = \omega^*$ and $\tau = 1$.  The first three pairs correspond to time series with 50 steps.  The last pair corresponds to a time series with 1000 steps.  The true values of our parameters are $\alpha = 2.0, \; \beta = 6.0, \; \omega = 1.0$.  We have fixed $\tau = 1$.}
@@ -1014,8 +1014,8 @@ It is important to remember that the inferences we make depend upon \emph{the da
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.45]{../Images/DLM2_Running_Ave_1000.jpg}
-\includegraphics[scale=0.45]{../Images/DLM2_Running_Ave_10000.jpg}
+%\includegraphics[scale=0.45]{../Images/DLM2_Running_Ave_1000.jpg}
+%\includegraphics[scale=0.45]{../Images/DLM2_Running_Ave_10000.jpg}
 \end{center}
 \end{figure}
 
@@ -1045,16 +1045,16 @@ $\phi$ & 0.821 & 0.000414 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.3]{../Images/DLM2_Test_TS_100.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM2_Test_TS_100.jpg}
 \end{center}
 \caption{The first 100 steps of our time series.}
 \end{figure}
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.3]{../Images/DLM2_mu_hist_1000_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.3]{../Images/DLM2_W_hist_1000_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.3]{../Images/DLM2_phi_hist_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM2_mu_hist_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM2_W_hist_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM2_phi_hist_1000_steps_3000_MCMC.jpg}
 \end{center}
 \label{DLM2:histograms}
 \caption{The histograms for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
@@ -1062,9 +1062,9 @@ $\phi$ & 0.821 & 0.000414 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.3]{../Images/DLM2_mu_acf_1000_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.3]{../Images/DLM2_W_acf_1000_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.3]{../Images/DLM2_phi_acf_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM2_mu_acf_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM2_W_acf_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM2_phi_acf_1000_steps_3000_MCMC.jpg}
 \end{center}
 \caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
 \end{figure}
@@ -1073,7 +1073,7 @@ The histograms in the figure \ref{DLM2:histograms} look pretty good.  We specula
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.45]{../Images/DLM2_W_Check_1000_MCMC_9000.jpg}
+%\includegraphics[scale=0.45]{../Images/DLM2_W_Check_1000_MCMC_9000.jpg}
 \end{center}
 \end{figure}
 
@@ -1089,7 +1089,7 @@ z_t = \mu + \phi (z_{t-1} - \mu) + \omega_t, & \omega_t \sim \mcN(0, W).
 
 We expect the AR component of our model to be stationary, which is the case when $|\phi| < 1$.  We can assume further, from our prior knowledge of volatiltiy modeling, that $\phi$ is positive and most likely close to one.  These assumptions will affect the prior and hence posterior distributions we arrive at for our model.  In particular, we will make the following alterations:
 \begin{itemize}
-\item We assume that the AR process is in a stationary state.  It will be useufl to return $x_t = z_t - \mu$ at times.  Since the stationary distribution of $x_t$ is $\mcN(0, W/(1-\phi^2))$ we change the prior of $z_t$ to $\mcN(\mu, W / (1-\phi^2))$.
+\item We assume that the AR process is in a stationary state.  It will be usefule to return $x_t = z_t - \mu$ at times.  Since the stationary distribution of $x_t$ is $\mcN(0, W/(1-\phi^2))$ we change the prior of $z_0$ to $\mcN(\mu, W / (1-\phi^2))$.
 \item Since we want to restrict $\phi$ to the interval $[0,1]$ we take the prior of $\phi$ to be a truncated normal
 \[
 \mcN(m_\phi, C_\phi) \1_{[0,1]}(\phi).
@@ -1125,13 +1125,13 @@ p(\phi | x_{0:n}, \mu, W) =
 \; \underbrace{ p(x_0 | \phi, \mu, W)}_{\textmd{new prior!}}
 \]
 \[
-p(x_t | x_{t-1}, \phi, \mu, W) \propto \exp \Big[ \frac{-1}{2W} \Big( x_t -  \phi x_{t-1}] \Big)^2 \Big]
+p(x_t | x_{t-1}, \phi, \mu, W) \propto \exp \Big[ \frac{-1}{2W} \Big( x_t -  \phi x_{t-1} \Big)^2 \Big]
 \]
 Hence the product above becomes
 \[
 \propto \exp \Big[ \frac{-1}{2W} \sum_{i=1}^n ( x_t - \phi x_{t-1} )^2 \Big]
 \]
-Considering the sum and completing the square this is then
+Completing the square in $\phi$ the sum becomes
 \begin{align*}
 \sum_{i=1}^n (x_i - \phi x_{i-1})^2 
 & = k + \phi^2 \sum_{i=1}^n x_{i-1}^2 - 2 \phi \sum_{i=1}^n x_i x_{i-1} \\
@@ -1170,7 +1170,7 @@ p(\phi | e.e.)
 
 \subsubsection{How to sample?}
 
-The question is now, ``How do you sample form this posterior distribution?''  The answer is by Metropolis-Hastings or some variant thereof.  A simple proposal distribution is the uniform distribution on $[0,1]$, in which case we have essentially an accept/reject algorithm.
+The question is now, ``How do you sample from this posterior distribution?''  The answer is by Metropolis-Hastings or some variant thereof.  A simple proposal distribution is the uniform distribution on $[0,1]$, in which case we have essentially an accept/reject algorithm.
 
 To draw from $p(\phi | e.e.)$ we follow the algorithm
 \begin{itemize}
@@ -1234,9 +1234,9 @@ $\phi$ & 0.823 & 0.000398 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.3]{../Images/DLM3_mu_hist_1000_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.3]{../Images/DLM3_W_hist_1000_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.3]{../Images/DLM3_phi_hist_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM3_mu_hist_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM3_W_hist_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM3_phi_hist_1000_steps_3000_MCMC.jpg}
 \end{center}
 \label{DLM3:histograms}
 \caption{The histograms for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
@@ -1244,9 +1244,9 @@ $\phi$ & 0.823 & 0.000398 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.3]{../Images/DLM3_mu_acf_1000_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.3]{../Images/DLM3_W_acf_1000_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.3]{../Images/DLM3_phi_acf_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM3_mu_acf_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM3_W_acf_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM3_phi_acf_1000_steps_3000_MCMC.jpg}
 \end{center}
 \caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
 \end{figure}
@@ -1360,16 +1360,16 @@ $\phi$ & 0.770 & 0.000866 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.2]{../Images/DLM4_Test_TS_100.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_Test_TS_100.jpg}
 \end{center}
 \caption{The first 100 steps of our time series.  The black line corresponds to $y$ and the grey lines corresponds to $z$.}
 \end{figure}
 
 %\begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.2]{../Images/DLM4_mu_hist_1000_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_W_hist_1000_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_phi_hist_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_mu_hist_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_W_hist_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_phi_hist_1000_steps_3000_MCMC.jpg}
 \end{center}
 %\label{DLM4:histograms}
 %\caption{The histograms for $\mu$, $W$, and $\phi$ produced from the %first 1000 steps if $y$.  The Gibbs sampler was run for 3000 steps %and the first 1000 steps were discarded.}
@@ -1377,9 +1377,9 @@ $\phi$ & 0.770 & 0.000866 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.2]{../Images/DLM4_mu_acf_1000_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_W_acf_1000_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_phi_acf_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_mu_acf_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_W_acf_1000_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_phi_acf_1000_steps_3000_MCMC.jpg}
 \end{center}
 \caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
 \end{figure}
@@ -1398,9 +1398,9 @@ $\phi$ & 0.768 & 0.000838 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.2]{../Images/DLM4_mu_hist_1000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_W_hist_1000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_phi_hist_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_mu_hist_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_W_hist_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_phi_hist_1000_steps_10000_MCMC.jpg}
 \end{center}
 \label{DLM4:histograms}
 \caption{The histograms for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 10000 steps and the first 3000 steps were discarded.}
@@ -1408,17 +1408,17 @@ $\phi$ & 0.768 & 0.000838 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.2]{../Images/DLM4_mu_acf_1000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_W_acf_1000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_phi_acf_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_mu_acf_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_W_acf_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_phi_acf_1000_steps_10000_MCMC.jpg}
 \end{center}
 \caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from the first 1000 steps if $y$.  The Gibbs sampler was run for 10000 steps and the first 3000 steps were discarded.}
 \end{figure}
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.2]{../Images/DLM4_z_first100_1000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_z_diff_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_z_first100_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_z_diff_1000_steps_10000_MCMC.jpg}
 \end{center}
 \label{fig:DLM4:z_stuff}
 \caption{The first 100 steps of the true $z$ is in blue.  We calculated the posterior mean of $z_i$ along with the posterior standard deviations and plotted the posterior mean $\pm$ posterior standard deviation for the first 100 steps in black and grey.  The second image is the difference between the true value of $z$ and the posterior mean of $z$.}
@@ -1438,9 +1438,9 @@ $\phi$ & 0.795 & 7.05e-05 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.2]{../Images/DLM4_mu_hist_10000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_W_hist_10000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_phi_hist_10000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_mu_hist_10000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_W_hist_10000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_phi_hist_10000_steps_10000_MCMC.jpg}
 \end{center}
 \label{DLM4:histograms}
 \caption{The histograms for $\mu$, $W$, and $\phi$ produced from 10000 steps if $y$.  The Gibbs sampler was run for 10000 steps and the first 3000 steps were discarded.}
@@ -1448,9 +1448,9 @@ $\phi$ & 0.795 & 7.05e-05 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.2]{../Images/DLM4_mu_acf_1000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_W_acf_1000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_phi_acf_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_mu_acf_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_W_acf_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_phi_acf_1000_steps_10000_MCMC.jpg}
 \end{center}
 \end{figure}
 
@@ -1492,9 +1492,9 @@ $\phi$ & 0.78 & 0.043 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.3]{../Images/DLM3_mu_hist_Test2_1000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.3]{../Images/DLM3_W_hist_Test2_1000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.3]{../Images/DLM3_phi_hist_Test2_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM3_mu_hist_Test2_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM3_W_hist_Test2_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM3_phi_hist_Test2_1000_steps_10000_MCMC.jpg}
 \end{center}
 \label{DLM4:histograms}
 \caption{The histograms for $\mu$, $W$, and $\phi$ produced from  1000 steps if $y$.  The Gibbs sampler was run for 10000 steps and the first 5000 steps were discarded.}
@@ -1502,9 +1502,9 @@ $\phi$ & 0.78 & 0.043 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.2]{../Images/DLM3_mu_acf_Test2_1000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM3_W_acf_Test2_1000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM3_phi_acf_Test2_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM3_mu_acf_Test2_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM3_W_acf_Test2_1000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM3_phi_acf_Test2_1000_steps_10000_MCMC.jpg}
 \end{center}
 \label{DLM4:histograms}
 \caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from  1000 steps if $y$.}
@@ -1524,9 +1524,9 @@ $\phi$ & 0.774 & 0.000314 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.3]{../Images/DLM3_mu_hist_Test2_10000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.3]{../Images/DLM3_W_hist_Test2_10000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.3]{../Images/DLM3_phi_hist_Test2_10000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM3_mu_hist_Test2_10000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM3_W_hist_Test2_10000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.3]{../Images/DLM3_phi_hist_Test2_10000_steps_10000_MCMC.jpg}
 \end{center}
 \label{DLM4:histograms}
 \caption{The histograms for $\mu$, $W$, and $\phi$ produced from all 10000 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
@@ -1534,13 +1534,117 @@ $\phi$ & 0.774 & 0.000314 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.2]{../Images/DLM3_mu_acf_Test2_10000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM3_W_acf_Test2_10000_steps_10000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM3_phi_acf_Test2_10000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM3_mu_acf_Test2_10000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM3_W_acf_Test2_10000_steps_10000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM3_phi_acf_Test2_10000_steps_10000_MCMC.jpg}
 \end{center}
 \label{DLM4:histograms}
 \caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from  3000 MCMC.}
 \end{figure}
+
+\section{Suggestions for testing code:}
+
+Coding is a messy business.  The mathematical ideas we discuss above may be correct, but translating those ideas into a computer programming introduces many opportunities for error.  It is possible that there is a typo in our derivation above.  It is possible that there is a transcription error when translating an algorithm on paper into an algorithm on disk.  Once we have written a piece of code and it works we need to be able to convince ourselves that it is actually doing the right thing.  (There has been a series of ICES seminars about proper coding techniques, which provide a useful base for this discussion.)  In what follows, I will simply discuss a few checks I go through when convicing myself that something works properly.  The context is Markov-Chain Monte Carlo and Gibbs sampling in particular.  Thus we are interested in producing the corret posterior distributions.
+
+To provide some context, we will follow a case study.  Our starting ponit is the model
+\[
+\begin{cases}
+y_t = z_t + \nu_t \\
+z_t = \mu + \phi (z_{t-1} - \mu) + \omega_t.
+\end{cases}
+\]
+Here we take $\nu_t$ to be a normal distribituion and not a normal mixture.
+We want to add another factor to this model, which is $\ell_t = 0.5 \log RM_t$.  Our new model is
+\[
+\begin{cases}
+y_t = z_t + \nu_t \\
+z_t = \mu + \phi (z_{t-1} - \mu) + \gamma \ell_t + \omega_t.
+\end{cases}
+\]
+We assume that we have a Gibbs Sampler for the original model which has been modified to incorporate the new term $\gamma \ell_t$.  It takes some thought to make this adjustment, but is fairly straightforward and aided by the fact we already have notes and code for the original model.  We want to test our new code to see if it is working.  The following tests may require synthetic data.
+
+\subsection{Test the Code on a Small Data Set with Few MCMC Iterations}
+
+A good place to start is too simply make sure that the code you have runs.  It is smart to test this out on a small data set and with few MCMC samples, that way you won't waste a ton of time to find out that your output, if it happens to be completely nonsensical.
+
+\subsection{Isolate Individual Components}
+
+Once your code is up and running you can use the inherent structure of Gibbs sampling to test individual components.  The algorithm for sampling the posterior distribution of the parameters given the data $y$ is summarized as (e.e. means everything else)
+\begin{enumerate}
+\item Sample $(\phi | e.e.)$.
+\item Sample $(W | e.e.)$.
+\item Sample $(\mu | e.e.)$.
+\item Sample $(\gamma | e.e.)$.
+\item Sample $(z_{0:n} | e.e.)$.
+\end{enumerate}
+Since we are working with synthetic data it is possible to take any one of these variables as known.  When isolating individual components you take one of the above variables as unknown and all the others as known.  For instance, we can take $\phi$ as unknown and $W, \mu, \gamma, and z_{0:n}$ as known.  To sample from the posterior of $\phi$ we just sample from $(\phi | e.e.)$.
+
+When implementing this in actual code I set the array of samples for $W, \mu, \gamma, and z_{0:n}$ to their known values.  I then comment out the calls to sample from $W, \mu, \gamma, and z_{0:n}$ in my Gibbs sampler.  I have a section set aside for the former, a portion of which looks like
+\begin{verbatim}
+mu.gibbs = rep(true$mu, mcmc$samples);
+#phi.gibbs = rep(true$phi, mcmc$samples);
+W.gibbs = rep(true$phi, mcmc$samples);
+gamma.gibbs = rep(true$gamma, mcmc$samples);
+\end{verbatim}
+This sets all of my $\mu, W$, and $\gamma$ samples to the actual value of $\mu, W$, and $\gamma$.  I do the same for $z_{0:n}$.  This setup makes it easy to change which variable I isolate.  For the latter, I comment out all of the unused Gibbs steps:
+\begin{verbatim}
+  phi.gibbs[i] = phi.cond.post(x.data, W.gibbs[i-1],
+             prior$m.phi, prior$v.phi, gamma.gibbs[i-1]);
+  # Sample W | e.e.
+#  W.gibbs[i] = W.cond.post(x.data, phi.gibbs[i], ...
+  # Sample mu | e.e.
+#  mu.gibbs[i] = mu.cond.post(z.gibbs[,i-1], phi.gibbs[i], ...
+  # Sample gamma | e.e.
+#  gamma.gibbs[i] = gamma.cond.post(x.data, W.gibbs[i], ...
+  # Sample z | e.e.
+#  z.gibbs[,i] = z.cond.post(y.data, mu.gibbs[i], m.nu, V, ... 
+\end{verbatim}
+You can then run the Gibbs sampler to calculate just the posterior distribution of $(\phi | e.e.)$.
+
+You will know that things are okay, if your distribution has the right shape, unimodal for instance, if it smooths out when you increase the number of MCMC samples, and if it is centered at the known value as you increase the number of time steps in your synthetic data.  You will not converge to specific values for $z_{0:n}$, since there are no asymptotics at work, however, your results should track the actual $z_{0:n}$ when there is not too much noise in the observations. One word of caution: the prior you chose will affect the asymptotic results.  Thus if actual value of $\phi$ is $0.2$, but you chose a prior that was centered at $0.5$, then your posterior distribution is likely to be centered slightly to the right of $0.2$.
+
+\subsection{Pairwise Checking for Correctness and Correlation}
+
+Once you have completed checking each component of your Gibbs sampler, you can check components in a pairwise fashion.  Again for parameters that do not change in time, you should be able to increase the number of observations and see some sort of asymptotic behavior.  Again, this asymptotic behavior should make sense given the actual value and the prior you have chosen.  The procedure is similar in the pairwise case.  Set the array of Gibbs sample to the known value for those variables you are taking to be known.  For instance, if we are doing a pairwise comparison of $\mu$ and $\gamma$,
+\begin{verbatim}
+#mu.gibbs = rep(true$mu, mcmc$samples);
+phi.gibbs = rep(true$phi, mcmc$samples);
+W.gibbs = rep(true$phi, mcmc$samples);
+#gamma.gibbs = rep(true$gamma, mcmc$samples);
+\end{verbatim}
+I have done the same for $z_{0:n}$ as well.
+Then comment out the portion of the Gibbs sampler that we do not need.
+\begin{comment}
+\begin{verbatim}
+  # Sample phi | e.e.
+#  phi.gibbs[i] = phi.cond.post(x.data, W.gibbs[i-1], ...
+  # Sample W | e.e.
+#  W.gibbs[i] = W.cond.post(x.data, phi.gibbs[i], ...
+  # Sample mu | e.e.
+  mu.gibbs[i] = mu.cond.post(z.gibbs[,i-1], phi.gibbs[i], ...
+  # Sample gamma | e.e.
+  gamma.gibbs[i] = gamma.cond.post(x.data, W.gibbs[i], ...
+  # Sample z | e.e.
+#  z.gibbs[,i] = z.cond.post(y.data, mu.gibbs[i], m.nu, V, ... 
+\end{verbatim}
+\end{comment}
+In addition to finding the proper asymptotics, you can also compare the cross-correlation to see how quickly or slowly your Gibbs sampling will converge.  The R command for this is \ttt{ccf} and a call to it looks somethign like
+\begin{verbatim}
+TheCC = ccf(gamma.gibbs, mu.gibbs);
+\end{verbatim}
+This will plot a correlogram that shows the autocorrelation unless you specifically tell R not to do so.
+Remember that no correlation means quicker convergence while high correlation means slow convergence.  I chose $\mu$ and $\gamma$ above precisely because, under my current setup, they are highly correlated and hence my Gibbs sampler shows some funny behavior, as can be seen in figure \ref{fig:pairwise-compare}.  There are a few things one should take note of.  First, the shape of the distributions is kind of funny.  Sometimes the posterior distribution will look un-unimodal, which is probably a sign that something is going on.  Further both histograms are similar in shape, something that is also unusual.  Lastly, if we look at the correlogram between $\gamma$ and $\mu$ we see that the samples are \emph{very} highly correlated for odd lags.  This will slow down our convergence significantly and produce wierder histograms.
+
+\begin{figure}
+\includegraphics[scale=1.0]{../Images/pairwise-compare.eps}
+\label{fig:pairwise-compare}
+\end{figure}
+
+When one starts to analyze how $\gamma$ is drawn they will notice that the posterior mean of $\gamma$ is almost a linear funtion of $\mu$ all else held constant.  Conversely, examining how $\mu$ is drawn, the posterior mean of $\mu$ is almost a linear function of $\gamma$ all else held constant.
+
+\subsection{Compare Your Results with Another Gibbs Sampler}
+
+\subsection{Summary of Useful Quantities}
 
 \begin{comment}
 \section{Comparison between different SV models}
@@ -1557,7 +1661,7 @@ $\mu$ & $m_\nu$ & $V$ & $\phi$ & $W$ \\
 
 The $z$ data is the grey line the $y$ data is the black line.  We used 10000 samples and only started recording data after the first 3000 samples.
 \begin{figure}[!h]
-\includegraphics[scale=0.75]{../Images/timeseries_compare.jpg}
+%\includegraphics[scale=0.75]{../Images/timeseries_compare.jpg}
 \end{figure}
 
 \item For DLM Part II the priors are
@@ -1577,11 +1681,11 @@ z_0 \sim N(\mu, W/(1-\phi^2)).
 You can see that using a truncated normal does not do very much for us in terms of the posterior distribution for $\phi$.  However, I think there may be advantages for convergence, but I haven't looked at this.
 
 \begin{figure}[!h]
-\includegraphics[scale=0.45]{../Images/mu_compare.jpg}
-\includegraphics[scale=0.45]{../Images/phi_compare.jpg}
+%\includegraphics[scale=0.45]{../Images/mu_compare.jpg}
+%\includegraphics[scale=0.45]{../Images/phi_compare.jpg}
 
-\includegraphics[scale=0.45]{../Images/W_compare.jpg}
-\includegraphics[scale=0.45]{../Images/z_compare.jpg}
+%\includegraphics[scale=0.45]{../Images/W_compare.jpg}
+%\includegraphics[scale=0.45]{../Images/z_compare.jpg}
 \end{figure}
 
 \end{comment}
@@ -1600,12 +1704,12 @@ You can see that using a truncated normal does not do very much for us in terms 
 Using data my Time Series class I calibrated our Part IV model using S\&P data from Jan. 04, 1999 to May 27, 1999.
 
 \begin{figure}[!h]
-%\includegraphics[scale=0.45]{../Images/sp_test.jpg}
-\includegraphics[scale=0.45]{../Images/returns_sp_test.jpg}
-\includegraphics[scale=0.45]{../Images/phi_test.jpg}
+%%\includegraphics[scale=0.45]{../Images/sp_test.jpg}
+%\includegraphics[scale=0.45]{../Images/returns_sp_test.jpg}
+%\includegraphics[scale=0.45]{../Images/phi_test.jpg}
 
-\includegraphics[scale=0.45]{../Images/mu_test.jpg}
-\includegraphics[scale=0.45]{../Images/W_test.jpg}
+%\includegraphics[scale=0.45]{../Images/mu_test.jpg}
+%\includegraphics[scale=0.45]{../Images/W_test.jpg}
 \end{figure}
 \end{comment}
 
@@ -1621,9 +1725,9 @@ $\phi$ & 0.958 & 7.29e-5 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.2]{../Images/DLM4_mu_hist_SP500_2480_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_W_hist_SP500_2480_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_phi_hist_SP500_2480_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_mu_hist_SP500_2480_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_W_hist_SP500_2480_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_phi_hist_SP500_2480_steps_3000_MCMC.jpg}
 \end{center}
 \label{DLM4:histograms}
 \caption{The histograms for $\mu$, $W$, and $\phi$ produced from all 2480 steps if $y$.  The Gibbs sampler was run for 3000 steps and the first 1000 steps were discarded.}
@@ -1631,9 +1735,9 @@ $\phi$ & 0.958 & 7.29e-5 \\
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[scale=0.2]{../Images/DLM4_mu_acf_SP500_2480_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_W_acf_SP500_2480_steps_3000_MCMC.jpg}
-\includegraphics[scale=0.2]{../Images/DLM4_phi_acf_SP500_2480_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_mu_acf_SP500_2480_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_W_acf_SP500_2480_steps_3000_MCMC.jpg}
+%\includegraphics[scale=0.2]{../Images/DLM4_phi_acf_SP500_2480_steps_3000_MCMC.jpg}
 \end{center}
 \label{DLM4:histograms}
 \caption{The autocorrelations for $\mu$, $W$, and $\phi$ produced from  3000 MCMC.}

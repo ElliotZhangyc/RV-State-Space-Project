@@ -32,8 +32,8 @@ for(i in 1:(T+1)){
 # matrix that represents our two dimensional histogram.
 
 # How we define the bins in phi and W.
-phi.bins = seq(0.1, 0.4, 1/40);
-W.bins = seq(0.1, 0.3, 1/40);
+phi.bins = seq(0.92, 1.0, 0.005);
+W.bins = seq(0.015, 0.035, 0.001);
 # Now fill the matrix.
 the.hist.2d = hist.2d(phi.gibbs[range], W.gibbs[range], phi.bins, W.bins);
 
@@ -141,6 +141,7 @@ write.table(round(post,4),
             sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
 
 # For the synthetic statistcs.
-write.table(round(synth.stats,4),
+#write.table(round(synth.stats,4),
+write.table(synth.stats,
             paste("Tbl-synth-", run.info$id, ".txt", sep=""), quote=FALSE,
             sep="\\&", row.names=FALSE, col.names=FALSE, eol="\\\\\\\\");
