@@ -1605,7 +1605,7 @@ You will know that things are okay, if your distribution has the right shape, un
 
 \subsection{Pairwise Checking for Correctness and Correlation}
 
-Once you have completed checking each component of your Gibbs sampler, you can check components in a pairwise fashion.  Again for parameters that do not change in time, you should be able to increase the number of observations and see some sort of asymptotic behavior.  Again, this asymptotic behavior should make sense given the actual value and the prior you have chosen.  The procedure is similar in the pairwise case.  Set the array of Gibbs sample to the known value for those variables you are taking to be known.  For instance, if we are doing a pairwise comparison of $\mu$ and $\gamma$,
+Once you have completed checking each component of your Gibbs sampler, you can check components in a pairwise fashion.  Again for parameters that do not change in time, you should be able to increase the number of observations and see some sort of asymptotic behavior.  Again, this asymptotic behavior should make sense given the actual value and the prior you have chosen.  The procedure is similar in the pairwise case.  Set the array of Gibbs samples to the known values of your chosing.  For instance, if we are doing a pairwise comparison of $\mu$ and $\gamma$,
 \begin{verbatim}
 #mu.gibbs = rep(true$mu, mcmc$samples);
 phi.gibbs = rep(true$phi, mcmc$samples);
@@ -1636,7 +1636,7 @@ This will plot a correlogram that shows the autocorrelation unless you specifica
 Remember that no correlation means quicker convergence while high correlation means slow convergence.  I chose $\mu$ and $\gamma$ above precisely because, under my current setup, they are highly correlated and hence my Gibbs sampler shows some funny behavior, as can be seen in figure \ref{fig:pairwise-compare}.  There are a few things one should take note of.  First, the shape of the distributions is kind of funny.  Sometimes the posterior distribution will look un-unimodal, which is probably a sign that something is going on.  Further both histograms are similar in shape, something that is also unusual.  Lastly, if we look at the correlogram between $\gamma$ and $\mu$ we see that the samples are \emph{very} highly correlated for odd lags.  This will slow down our convergence significantly and produce wierder histograms.
 
 \begin{figure}
-\includegraphics[scale=1.0]{../Images/pairwise-compare.eps}
+%\includegraphics[scale=1.0]{../Images/pairwise-compare.eps}
 \label{fig:pairwise-compare}
 \end{figure}
 
@@ -1644,7 +1644,82 @@ When one starts to analyze how $\gamma$ is drawn they will notice that the poste
 
 \subsection{Compare Your Results with Another Gibbs Sampler}
 
+Once you think the components of your Gibbs sampler are correct you can compare your results with the output produced by an older Gibbs sampler.  For instance, in the example above, I could set $\gamma$ equal to zero and use DLM2 for the comparison.
+
 \subsection{Summary of Useful Quantities}
+
+Some useful quantities include the mean, various quantiles, standard deviation, the histogram, the autocorrelation, and the crosscorrelation.
+
+\section{Particle Filters}
+
+\begin{itemize}
+\item Previously we have looked at DLM.  In that case we are estimating many quantities.  With particle filters it appears that the setup is generally that you know the parameters of the system, but get noisy observations of some underlying quantity.  
+\item Particle filters make adapted, not smoothed, estimates of the unknown quantities.  For instance, if $y_{1:n}$ is the observed data and $x_{1:n}$ are the unknown states, then a filtered estimate of $x_t$ is an estimate made using only the data up to time $t$.  A smoothed estimate of $x_t$ is an estimate made using data at times greater than $t$.  In our discussion of DLM we made smoothed estimates of the unknown states because we used all of $y_{1:n}$ to estimate states such as $z_1, z_2$, etc.
+\item Any discussion of Particle Filters must begin with importance sampling.  Importance sampling is the foundational concept upon which particle filters are built.
+\begin{itemize}
+\item The abstract set up is this:  There is some pmf or pdf that you are interested in, which we will call $p$.  However, you do not know how to sample from $p$ or how to calculate its various moments.  Instead, you know how to sample from some pdf $q$.  What can you do?
+\item Notice 
+\[
+\int_A p(x) dx = \int_A \frac{p(x)}{q(x)} q(x) dx.
+\]
+If we associate the measures $P$ and $Q$ with $p$ and $q$, then we can see that $\frac{dP}{dQ} = p/q$.  That is the Radon-Nikodym derivative is $p/q$.
+\item This looks like an obvious statement.  In essence you take a pdf $q$ and then reweight it in a way that produces another pdf.
+\item What can you do with this?  You can use it for calculations.  You cannot generate samples, $X_i \sim P$, but you can generate samples $X_i \sim Q$.  Thus you can use the LLN to show that
+\begin{align*}
+\int f(x) p(x) dx & = \int f(x) \frac{p(x)}{q(x)} q(x) dx \\
+& = \bbE_Q[ f(X_i) \frac{p(X_i)}{q(X_i)} ] \\
+& \simeq \frac{1}{N} \sum_{i=1}^N f(X_i) \frac{p(X_i)}{q(X_i)}.
+\end{align*}
+\item We call $q$ the imporatnce function and we call $w = p/q$ the weight function.  Thus the sum above is $\frac{1}{N} \sum f(X_i) w(X_i)$.  We can look at $w(X_i)/N$ as approximate weights so that $\{x_i, w(x_i)/N\}$ is an approximation of $P$.  We can normalize so that we get $\{x_i, w_i\}$ as an approximation of $P$ where $w_i$ yield an actual probability measure. 
+\item This holds for reasonably chosen functions $f$ and hence we can start to calculate many interesting quantities.  In particular, we start to calculate moments, cumulative distribution functions, and histograms.
+\item Notice further that this idea holds for functions that are not probability measures as well.  Thus one way to calculate the integral $\int f g$ for an arbitrary function $g$ is to draw random samples from $q$ and then calculate $\sum f(X_i) \frac{g(X_i)}{q(X_i)} N^{-1}$.
+\item Weight functions have the property that $\int w(x) q(x) dx = 1$.  (Think about this in the context of a change of measure, a la Girsanov.)  But as I stated above, this idea works for $L^1$ functions.
+\item As is often the case in Bayesian statistics, we may not know the specific function $p$, but only the functional form of $p$, which we will call $\tilde p$.  Thus $\tilde p$ is not a pdf it is just the kernel of a pdf, i.e. $\tilde p \propto p$.  W can get $p$ by the normalization $\tilde p / \int \tilde p$.  Thus from our calculations above we have that
+\[
+\int f(x) p(x) dx = \int f(x) \frac{\tilde p(x)}{\int \tilde p} dx = \frac{1}{\int \tilde p} \int f(x) \tilde p(x) dx.
+\]
+Thus by importance sampling we have
+\[
+\int \tilde p(x) dx = \frac{1}{N} \sum \frac{\tilde p(X_i)}{q(X_i)}
+\; \textmd{ and } \;
+\int f(x) \tilde p(x) dx = \frac{1}{N} \sum f(X_i) \frac{\tilde p(X_i)}{q(X_i)}.
+\]
+Thus if we let $\tilde w_i = \frac{\tilde p(X_i)}{q(X_i)}$ we see that 
+\[
+\int f(x) p(x) dx \simeq \sum f(X_i) \frac{\tilde w_i}{\sum \tilde w_j}.
+\]
+Letting $w_i = \tilde w_i / \sum \tilde w_j$ gives us the wieghts which approximate $p(X_i)/q(X_i)$, if we were able to write $p$ down.
+\item In this way we have gone from $\{x_i, 1/N\}$, which is an approximation of $Q$, to $\{x_i, w_i\}$ which is an approximation of $P$.
+\item Letting $f_y(x) = \1_{(-\infty, y])}(x)$ we can approximate the cdf of $p$.
+\item Using the cdf we can approximate the pdf of $p$ with a pmf.
+\item The empirical cdf described above converges weakly to the cdf of $p$ and the empirical pmf converges weakly to the pdf of $p$.  (This is all not very precise).  One important point, for myself, is that the weak topology is very coarse and hence you can have very discontinuous things converge to ``continuous'' things, e.g. you can have pmf's that converge to pdf's.  Yuichi Kitamura (Yale) made this comment in a economics seminar.  I had not thought about how the weak topology was helping me out before.
+\item Now, how can you sample from $p$?  You can use the empirical cdf and empirical pmf that approximate $p$.  In particular, sampling from the empirical pmf is like sampling from a multinomail distribution.  If there are $n$ different weights $w_i$, then we can think of rolling an $n$-sided die where the weight of the $i$th side is $w_i$.  There are several ways we can think about doing sampling from this pmf.
+\begin{itemize}
+\item I need pictures for this.  Refer to the blue book (Nov. 21).  First idea:  Think about a fair die with six sides.  On the sides of the die are the numbers $\{1, 2, 2, 2, 3, 3\}$.  Thus when you roll this die there is a $1/6$ probability of getting a 1, a $1/2$ probability of getting a 2, and a $1/3$ probaiblity of getting at 3.
+\item Second idea: Think about a 3 sided die, with the sides numbered $\{1, 2, 3\}$.  This die is not fair though.  It is designed so that there is a $1/6$ probability of getting a 1, a $1/2$ probability of getting a 2, and a $1/3$ probaiblity of getting at 3.  Despite the die's different construction, it is equivalent to the die above.
+\item You can now sample \emph{from the same distribution} using either die.
+\item I have other analogies in my blue book.
+\end{itemize}
+\item How might we apply importance sampling when making inferences.  Imagine for the moment that you have observed some quantity $y$ which was drawn from the distribution $p(y|x)$.  Further, you have some prior distribution $p(x)$ on $x$ and you want to calculate the posterior distribution of $x$ given $y$.  Let's suppose further that you can draw from the distribution $p(x)$.  By Bayes Theorem we know that for fixed $y$, $p(x|y) \propto p(y|x) p(x)$.  Using our notation above we have that $p \propto \tilde p$ where $\tilde p(x) = p(y|x) p(x)$.  Then
+\[
+\int f(x) \tilde p(x) dx = \int f(x) \frac{p(y|x)p(x)}{p(x)} p(x) dx.
+\]
+The term $p(x)$ cancels in the numerator and denomenator and we see that the unnormalized importance weights are
+\[
+\tilde w_i = p(y|x_i).
+\]
+Thus after normalizing our weights we have that
+\[
+\int f(x) p(x|y) dx \simeq \frac{1}{N} \sum_{i=1}^N f(x_i) w_i.
+\]
+Remember, this formula can be used to calculate moments, cdf's, and pmf's.  Further we can use the empirical pmf to sample from our approximation.
+\item The approximation $\{x_i, w_i\}$ corresponds to the die with three sides and a different weight on each side.  It turns out that we can benefit from sampling from the equivalent die that is fair and has six sides.  In order to make this transformation you can take a draw from $\{x_i, w_i\}_{i=1}^R$ to get $\{\tilde x_i, \frac{1}{M}\}_{i=1}^M$.  Generally $M << R$.  This procedure is called sampling-importance-resampling.
+\item We can repeat this type of procedure when, instead of sampling from a prior distribution, you sample from some proposal distribution $g(x|y)$.  The $y$ is included here to emphasize that our proposal can depend upon the data $y$ that we have observed!  Remember $y$ is just a fixed number once it has been revealed.  This will become an important point later, since early particle filters used to sample from a ``prior'' that didn't take into account the entire data set at time $t$.  Pitt and Shephard proposed sampling in a smart way using all of the data available up to time $t$.
+\item Include a description of how that might work?  I want to express the most basic ideas the form the root of more complex techniques.  In the particle filtering case, that includes importance sampling and the different ways you can think about rolling a die.
+
+\end{itemize}
+
+\end{itemize}
 
 \begin{comment}
 \section{Comparison between different SV models}
