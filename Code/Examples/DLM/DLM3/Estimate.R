@@ -160,6 +160,88 @@ W.cond.post <- function(x.data, phi, W.a, W.b){
   W.draw = 1/W.recip.draw;
 }
 
+## THE FOLLOWING IS FOR DRAWING (phi, W) SIMULTANEOUSLY ##
+
+# The proposal density for (phi, W).
+phi.W.prop.dens <- function(phi, W, n.m, n.v, x.0, a, b){
+  ig.term = W^(-0.5*a - 1) * exp(-0.5*b/W);
+  n.term = dnorm(phi, n.m, n.v);
+  ans = n.term * ig.term;
+}
+
+# The target density for (phi, W).
+phi.W.target.dens <- function(phi, W, n.m, n.v, x.0, a, b){
+  ig.term = W^(-0.5*a - 1) * exp(-0.5*b/W);
+  n.term = dnorm(phi, n.m, n.v) * sqrt(1-phi^2);
+  ans = n.term * ig.term;
+  if (phi < 0 || phi > 1) ans = 0;
+  ans;
+}
+
+# importance = target / proposal.  W is built into the proposal and
+# target mean and variance.  We get cancellation of the inverse gamma
+# distributions.
+log.phi.W.importance <- function(phi, target.m, target.v, S){
+  diff = 0.5 * log(S) - 0.5 * (S-1)/S * (phi - target.m)^2 / target.v +
+    0.5 * log(1-phi^2);
+  if (phi < 0 || phi > 1) diff = -Inf;
+  diff;
+}
+  
+# To draw (phi, W) | everything else.
+phi.W.cond.post <- function(x.data, m.phi, C.phi, W.a, W.b, phi.prev, W.prev){
+  # We can factor (phi, W) | e.e. as something that looks very similar
+  # to a normal-inverse Gamma distribution.  See notes.
+  n = length(x.data) - 1;
+  # Some preliminary data.
+  g.0 = x.data[2:n] %*% x.data[2:n];
+  g.1 = x.data[2:(n+1)] %*% x.data[1:n];
+  phi.1 = g.1 / g.0; # A point estimate of phi.
+  # First, we have the IG portion.
+  a.post = W.a + n;
+  b.post = W.b + (g.0 + x.data[1]^2 + x.data[n+1]^2) - g.1^2/g.0;
+  W.recip.draw = rgamma(1, a.post/2, rate=b.post/2);
+  W.draw = 1/W.recip.draw;
+  W = W.draw; # To keep things brief.
+  # Second, we have the normal portion.
+  # We calculate the precision, variance, and mean.
+  # post.prec = 1/C.phi + g.0/W.draw;
+  llh.var = W / g.0;
+  post.var = C.phi * llh.var / (C.phi + llh.var);
+  post.mean = C.phi * phi.1 / (C.phi + llh.var) +
+              llh.var * m.phi / (C.phi + llh.var);
+  # We will draw from this distribution with a little larger variance.
+  # In West's notes he suggests drawing from a distribution with
+  # slighly larger variance when there is only one dimension.
+  S = 2; # Maybe I should try 2.4.
+  prop.mean = post.mean;
+  prop.sd = sqrt(S*post.var);
+  phi.draw = rnorm(1, prop.mean, prop.sd);
+  # In the end, we will only accept this if it is in (0,1).
+  # Set the draw.
+  draw = c(phi.prev, W.prev);
+  # Only do this if we can accept the draw.
+  if(phi.draw > 0 && phi.draw <1){
+  # Now we need to calculate our acceptance ratio.  See p. 393 of R&C.
+  # First, we need to calculate some values so that we can evaluate
+  # the importance function for the the previous phi and W.
+  llh.var.prev = W.prev / g.0;
+  post.var.prev = C.phi * llh.var / (C.phi + llh.var);
+  post.mean.prev = C.phi * phi.1 / (C.phi + llh.var) +
+              llh.var * m.phi / (C.phi + llh.var);
+  # Now calculate the acceptance probability.
+  log.ratio = log.phi.W.importance(phi.draw, post.mean, post.var, S) -
+    log.phi.W.importance(phi.prev, post.mean.prev, post.var.prev, S);
+  ratio = exp(log.ratio);
+  accept = min(1, ratio);
+  #print(c(post.mean, post.var, post.mean.prev, post.var.prev, ratio));
+  # Now determine if we will accept the draw.
+  u = runif(1);
+  if (u < accept) draw = c(phi.draw, W.draw);
+  }
+  draw;
+}
+
 ## GIBBS SAMPLING ##
 
 # To keep track of the time.
@@ -167,8 +249,8 @@ the.time = rep(0, floor(mcmc$samples/100)+1);
 delta.time = rep(0, length(the.time)-1);
 the.time[1] = proc.time()[[1]];
 
-# Now we can go ahead and do our Gibbs sampling.
-# Again refer to the notes for a description.
+# Now we can go ahead and do our Gibbs sampling.  Again refer to the
+# notes for a description.  Make sure to sample mu and z last.
 for(i in 2:mcmc$samples){
   # A change of variables is useful.
   x.data = z.gibbs[,i-1] - mu.gibbs[i-1];
@@ -177,9 +259,14 @@ for(i in 2:mcmc$samples){
 #             prior$m.phi, prior$v.phi, phi.gibbs[i-1]);
   # Sample W | e.e.
 #  W.gibbs[i] = W.cond.post(x.data, phi.gibbs[i], prior$a.W, prior$b.W);
+  # Sample (phi, W) | e.e.
+  phi.and.W = phi.W.cond.post(x.data, prior$m.phi, prior$v.phi,
+    prior$a.W, prior$b.W, phi.gibbs[i-1], W.gibbs[i-1]);
+  phi.gibbs[i] = phi.and.W[1];
+  W.gibbs[i] = phi.and.W[2];
   # Sample mu | e.e.
-#  mu.gibbs[i] = mu.cond.post(z.gibbs[,i-1], phi.gibbs[i],
-#            W.gibbs[i], prior$m.mu, prior$v.mu);
+  mu.gibbs[i] = mu.cond.post(z.gibbs[,i-1], phi.gibbs[i],
+            W.gibbs[i], prior$m.mu, prior$v.mu);
   # Sample z | e.e.
   z.gibbs[,i] = z.cond.post(y.data, mu.gibbs[i], nu$m, nu$v,
            phi.gibbs[i], W.gibbs[i], mu.gibbs[i],
